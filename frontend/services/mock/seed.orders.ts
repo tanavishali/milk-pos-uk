@@ -1,0 +1,235 @@
+import { PaymentType } from "@enums/index";
+import type { Order } from "@app-types/index";
+
+/**
+ * Seed transactions. Each line carries the productId it was issued against
+ * plus the price charged at the time, so a later price edit cannot rewrite a
+ * receipt that has already printed.
+ */
+export const seedOrders: Order[] = [
+  {
+    id: "TRX-8901",
+    date: "2026-08-21 14:10",
+    customer: { name: "Zainab Ahmed", phone: "+92 300 1234567", address: "Model Town, Lahore" },
+    courier: "Bilal Khan",
+    items: [
+      { productId: "PROD-101", name: "Belgian Chocolate Fudge Cake", qty: 1, price: 24.50 },
+      { productId: "PROD-104", name: "Organic Almond Milk 1L", qty: 2, price: 3.80 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 32.10,
+  },
+  {
+    id: "TRX-8902",
+    date: "2026-08-21 14:25",
+    customer: { name: "Hamza Malik", phone: "+92 321 7654321", address: "Sector F-7, Islamabad" },
+    courier: "Waleed Aslam",
+    items: [
+      { productId: "PROD-102", name: "Red Velvet Pastry Pack (4pc)", qty: 2, price: 9.99 },
+    ],
+    paymentType: PaymentType.OnCredit,
+    total: 19.98,
+  },
+  {
+    id: "TRX-8903",
+    date: "2026-08-21 14:40",
+    customer: { name: "Ayesha Tariq", phone: "+92 333 4567890", address: "Gulberg III, Lahore" },
+    courier: "Tariq Mehmood",
+    items: [
+      { productId: "PROD-103", name: "Artisan Sourdough Loaf", qty: 1, price: 5.50 },
+      { productId: "PROD-111", name: "Fresh Mozzarella Cheese Ball", qty: 1, price: 5.20 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 10.70,
+  },
+  {
+    id: "TRX-8904",
+    date: "2026-08-21 15:00",
+    customer: { name: "Bilal Siddiqui", phone: "+92 312 9876541", address: "DHA Phase 5, Karachi" },
+    courier: "Rashid Minhas",
+    items: [
+      { productId: "PROD-105", name: "Gourmet Nitro Cold Brew", qty: 4, price: 4.20 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 16.80,
+  },
+  {
+    id: "TRX-8905",
+    date: "2026-08-21 15:15",
+    customer: { name: "Fatima Noor", phone: "+92 345 1122334", address: "Bahria Town, Rawalpindi" },
+    courier: "Waleed Aslam",
+    items: [
+      { productId: "PROD-110", name: "Organic Honey 500g", qty: 1, price: 12.50 },
+    ],
+    paymentType: PaymentType.OnCredit,
+    total: 12.50,
+  },
+  {
+    id: "TRX-8906",
+    date: "2026-08-21 15:35",
+    customer: { name: "Usman Ghani", phone: "+92 301 9988776", address: "Cavalry Ground, Lahore" },
+    courier: "Kashif Ali",
+    items: [
+      { productId: "PROD-115", name: "Premium Roast Coffee Beans 500g", qty: 2, price: 15.50 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 31.00,
+  },
+  {
+    id: "TRX-8907",
+    date: "2026-08-21 16:00",
+    customer: { name: "Sara Khan", phone: "+92 322 3344556", address: "University Town, Peshawar" },
+    courier: "Shahid Afridi",
+    items: [
+      { productId: "PROD-106", name: "Salted Caramel Macarons (6pc)", qty: 2, price: 13.00 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 26.00,
+  },
+  {
+    id: "TRX-8908",
+    date: "2026-08-21 16:15",
+    customer: { name: "Ali Raza", phone: "+92 334 6677889", address: "Faisal Town, Lahore" },
+    courier: "Mohsin Abbas",
+    items: [
+      { productId: "PROD-108", name: "Butter Croissants (2pc Pack)", qty: 3, price: 3.99 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 11.97,
+  },
+  {
+    id: "TRX-8909",
+    date: "2026-08-21 16:30",
+    customer: { name: "Maryam Javed", phone: "+92 306 4433221", address: "Satellite Town, Sargodha" },
+    courier: "Noman Dar",
+    items: [
+      { productId: "PROD-113", name: "Frozen Strawberry Cheesecake Slice", qty: 4, price: 4.80 },
+    ],
+    paymentType: PaymentType.OnCredit,
+    total: 19.20,
+  },
+  {
+    id: "TRX-8910",
+    date: "2026-08-21 16:50",
+    customer: { name: "Omer Farooq", phone: "+92 315 5566778", address: "Chaklala Scheme 3, Rawalpindi" },
+    courier: "Sajid Wasti",
+    items: [
+      { productId: "PROD-109", name: "English Breakfast Tea Leaves 250g", qty: 2, price: 6.80 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 13.60,
+  },
+  {
+    id: "TRX-8911",
+    date: "2026-08-21 17:10",
+    customer: { name: "Hira Mani", phone: "+92 302 8877665", address: "Clifton Block 2, Karachi" },
+    courier: "Junaid Jamshed",
+    items: [
+      { productId: "PROD-101", name: "Belgian Chocolate Fudge Cake", qty: 1, price: 24.50 },
+      { productId: "PROD-112", name: "Sparkling Mineral Water 750ml", qty: 3, price: 2.00 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 30.50,
+  },
+  {
+    id: "TRX-8912",
+    date: "2026-08-21 17:25",
+    customer: { name: "Saad Rafique", phone: "+92 320 2233445", address: "Johar Town, Lahore" },
+    courier: "Babar Azam",
+    items: [
+      { productId: "PROD-118", name: "Oatmeal Raisin Cookie Box", qty: 2, price: 7.00 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 14.00,
+  },
+  {
+    id: "TRX-8913",
+    date: "2026-08-21 17:45",
+    customer: { name: "Anum Sheikh", phone: "+92 344 7788990", address: "Cantt Area, Multan" },
+    courier: "Imran Nazir",
+    items: [
+      { productId: "PROD-119", name: "Matcha Green Tea Powder 100g", qty: 1, price: 13.80 },
+    ],
+    paymentType: PaymentType.OnCredit,
+    total: 13.80,
+  },
+  {
+    id: "TRX-8914",
+    date: "2026-08-21 18:00",
+    customer: { name: "Kamran Akmal", phone: "+92 331 6655443", address: "WAPDA Town, Lahore" },
+    courier: "Zeeshan Butt",
+    items: [
+      { productId: "PROD-116", name: "Garlic Herb Cream Cheese 200g", qty: 2, price: 3.50 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 7.00,
+  },
+  {
+    id: "TRX-8915",
+    date: "2026-08-21 18:20",
+    customer: { name: "Mahnoor Baloch", phone: "+92 308 3322119", address: "Jinnah Town, Quetta" },
+    courier: "Bilal Khan",
+    items: [
+      { productId: "PROD-114", name: "Pure Maple Syrup 250ml", qty: 1, price: 9.50 },
+      { productId: "PROD-120", name: "Organic Rolled Oats 1kg", qty: 2, price: 5.40 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 20.30,
+  },
+  {
+    id: "TRX-8916",
+    date: "2026-08-21 18:40",
+    customer: { name: "Zubair Shah", phone: "+92 311 9900112", address: "Supply Area, Abbottabad" },
+    courier: "Haris Rauf",
+    items: [
+      { productId: "PROD-117", name: "Frozen French Puff Pastry Sheets", qty: 3, price: 6.00 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 18.00,
+  },
+  {
+    id: "TRX-8917",
+    date: "2026-08-21 19:00",
+    customer: { name: "Khadija Bibi", phone: "+92 305 4455112", address: "Madina Town, Faisalabad" },
+    courier: "Noman Dar",
+    items: [
+      { productId: "PROD-107", name: "Greek Plain Yogurt 500g", qty: 3, price: 3.20 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 9.60,
+  },
+  {
+    id: "TRX-8918",
+    date: "2026-08-21 19:15",
+    customer: { name: "Daniyal Qureshi", phone: "+92 323 1122889", address: "PECHS Block 6, Karachi" },
+    courier: "Farhan Akhtar",
+    items: [
+      { productId: "PROD-101", name: "Belgian Chocolate Fudge Cake", qty: 2, price: 24.50 },
+    ],
+    paymentType: PaymentType.OnCredit,
+    total: 49.00,
+  },
+  {
+    id: "TRX-8919",
+    date: "2026-08-21 19:30",
+    customer: { name: "Rabia Basri", phone: "+92 342 9988334", address: "Allama Iqbal Town, Lahore" },
+    courier: "Mohsin Abbas",
+    items: [
+      { productId: "PROD-102", name: "Red Velvet Pastry Pack (4pc)", qty: 3, price: 9.99 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 29.97,
+  },
+  {
+    id: "TRX-8920",
+    date: "2026-08-21 19:45",
+    customer: { name: "Fahad Mustafa", phone: "+92 300 7766112", address: "Gulshan-e-Iqbal, Karachi" },
+    courier: "Rashid Minhas",
+    items: [
+      { productId: "PROD-105", name: "Gourmet Nitro Cold Brew", qty: 2, price: 4.20 },
+      { productId: "PROD-108", name: "Butter Croissants (2pc Pack)", qty: 2, price: 3.99 },
+    ],
+    paymentType: PaymentType.Paid,
+    total: 16.38,
+  },
+];

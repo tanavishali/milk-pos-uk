@@ -1,0 +1,486 @@
+@import "tailwindcss";
+
+/* next-themes sets class="dark" on <html> before hydration. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Palette — the source of truth.
+   BLANKSYS POS: near-black chrome, a cool grey page, white cards with
+   hairline borders, and a single green accent. theme/colors.ts mirrors
+   every value below.
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --background: #f5f6f8;
+  --surface: #ffffff;
+  --surface-muted: #f6f7f9;
+  --surface-subtle: #f0f1f3;
+  --surface-inset: #e6e8ec;
+
+  /* Chrome — the dark sidebar/bar. Its own group because these colours only
+     ever apply on the dark surface and must not leak into the body. */
+  --chrome: #14171a;
+  --chrome-hover: #1d2127;
+  --chrome-foreground: #ffffff;
+  --chrome-foreground-muted: #6b7280;
+  --chrome-border: #232730;
+  --chrome-accent: #0f8a6b;
+
+  /* Foreground */
+  --foreground-strong: #14171a;
+  --foreground: #14171a;
+  --foreground-body: #3f4451;
+  --foreground-muted: #6b7280;
+  --foreground-subtle: #8a9099;
+  --foreground-on-accent: #ffffff;
+
+  /* Borders */
+  --border: #e6e8ec;
+  --border-subtle: #f0f1f3;
+  --border-strong: #d6dbe0;
+  --border-input: #e6e8ec;
+  --border-focus: #0f8a6b;
+
+  /* Accent — brand green */
+  --accent: #0f8a6b;
+  --accent-hover: #0c7259;
+  --accent-soft: #e7f5ef;
+  --accent-muted: #d3ece2;
+  --accent-ring: #b7dfd0;
+  --accent-text: #0f8a6b;
+
+  /* Success — positive deltas and money in */
+  --success: #15803d;
+  --success-hover: #166534;
+  --success-soft: #e7f5ef;
+  --success-muted: #d3ece2;
+  --success-ring: #b7dfd0;
+  --success-text: #15803d;
+
+  /* Danger */
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-soft: #fdecec;
+  --danger-muted: #fbdada;
+  --danger-ring: #f6c2c2;
+  --danger-text: #b91c1c;
+
+  /* Warning — the "On Credit" state */
+  --warning: #d97706;
+  --warning-hover: #b45309;
+  --warning-soft: #fef3c7;
+  --warning-muted: #fde8a6;
+  --warning-ring: #fcd97d;
+  --warning-text: #b45309;
+
+  /* Info */
+  --info: #2563eb;
+  --info-hover: #1d4ed8;
+  --info-soft: #eaf1ff;
+  --info-muted: #d7e5ff;
+  --info-ring: #b9d2ff;
+  --info-text: #2563eb;
+
+  /* Charts */
+  --chart-1: #0f8a6b;
+  --chart-2: #2563eb;
+  --chart-3: #d97706;
+  --chart-4: #7c3aed;
+  --chart-5: #0ea5e9;
+  --chart-6: #dc2626;
+  --chart-grid: #f0f1f3;
+  --chart-axis: #8a9099;
+
+  /* Elevation — deliberately shallow; the lift only appears on hover */
+  --elev-card: 0 1px 2px 0 rgb(20 23 26 / 0.04);
+  --elev-card-lg: 0 12px 28px rgb(20 23 26 / 0.08);
+  --elev-dropdown: 0 12px 28px rgb(20 23 26 / 0.12);
+  --elev-modal: 0 24px 70px rgb(0 0 0 / 0.3);
+  --elev-chrome: 0 1px 0 0 rgb(230 232 236 / 1);
+  --elev-accent: 0 4px 10px -2px rgb(15 138 107 / 0.3);
+  --elev-success: 0 4px 10px -2px rgb(21 128 61 / 0.28);
+  --elev-danger: 0 4px 10px -2px rgb(220 38 38 / 0.28);
+}
+
+.dark {
+  /* Surfaces */
+  --background: #020617;
+  --surface: #0f172a;
+  --surface-muted: #1e293b;
+  --surface-subtle: #1e293b;
+  --surface-inset: #334155;
+
+  /* Chrome */
+  --chrome: #0d0f11;
+  --chrome-hover: #1e293b;
+  --chrome-foreground: #f8fafc;
+  --chrome-foreground-muted: #94a3b8;
+  --chrome-border: #1e293b;
+  --chrome-accent: #14b892;
+
+  /* Foreground */
+  --foreground-strong: #f8fafc;
+  --foreground: #e2e8f0;
+  --foreground-body: #cbd5e1;
+  --foreground-muted: #94a3b8;
+  --foreground-subtle: #64748b;
+  --foreground-on-accent: #ffffff;
+
+  /* Borders */
+  --border: #1e293b;
+  --border-subtle: #172033;
+  --border-strong: #334155;
+  --border-input: #334155;
+  --border-focus: #14b892;
+
+  /* Accent */
+  --accent: #14b892;
+  --accent-hover: #34d3ad;
+  --accent-soft: #0f8a6b1f;
+  --accent-muted: #0f8a6b33;
+  --accent-ring: #0f8a6b40;
+  --accent-text: #34d3ad;
+
+  /* Success */
+  --success: #00c980;
+  --success-hover: #34d399;
+  --success-soft: #00c9801f;
+  --success-muted: #00c98033;
+  --success-ring: #00c98040;
+  --success-text: #34d399;
+
+  /* Danger */
+  --danger: #f43f5e;
+  --danger-hover: #fb7185;
+  --danger-soft: #f43f5e1f;
+  --danger-muted: #f43f5e33;
+  --danger-ring: #f43f5e40;
+  --danger-text: #fb7185;
+
+  /* Warning */
+  --warning: #f59e0b;
+  --warning-hover: #fbbf24;
+  --warning-soft: #f59e0b1f;
+  --warning-muted: #f59e0b33;
+  --warning-ring: #f59e0b40;
+  --warning-text: #fbbf24;
+
+  /* Info */
+  --info: #8b5cf6;
+  --info-hover: #a78bfa;
+  --info-soft: #7c3aed1f;
+  --info-muted: #7c3aed33;
+  --info-ring: #7c3aed40;
+  --info-text: #a78bfa;
+
+  /* Charts */
+  --chart-1: #34d3ad;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #38bdf8;
+  --chart-6: #fb7185;
+  --chart-grid: #1e293b;
+  --chart-axis: #64748b;
+
+  /* Elevation */
+  --elev-card: 0 1px 2px 0 rgb(2 6 23 / 0.4);
+  --elev-card-lg: 0 10px 20px -6px rgb(2 6 23 / 0.6);
+  --elev-dropdown: 0 12px 32px -8px rgb(2 6 23 / 0.7),
+    0 4px 8px -4px rgb(2 6 23 / 0.5);
+  --elev-modal: 0 24px 48px -12px rgb(2 6 23 / 0.8);
+  --elev-chrome: 0 4px 6px -1px rgb(2 6 23 / 0.5);
+  --elev-accent: 0 4px 10px -2px rgb(59 130 246 / 0.4);
+  --elev-success: 0 4px 10px -2px rgb(0 201 128 / 0.35);
+  --elev-danger: 0 4px 10px -2px rgb(244 63 94 / 0.35);
+}
+
+/* ============================================================
+   Tailwind theme — every token this app is allowed to reach for.
+   `inline` so the generated utilities read the vars above and
+   therefore flip with the `dark` class at runtime.
+   ============================================================ */
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-inset: var(--surface-inset);
+
+  --color-chrome: var(--chrome);
+  --color-chrome-hover: var(--chrome-hover);
+  --color-chrome-foreground: var(--chrome-foreground);
+  --color-chrome-foreground-muted: var(--chrome-foreground-muted);
+  --color-chrome-border: var(--chrome-border);
+  --color-chrome-accent: var(--chrome-accent);
+
+  --color-foreground-strong: var(--foreground-strong);
+  --color-foreground: var(--foreground);
+  --color-foreground-body: var(--foreground-body);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-subtle: var(--foreground-subtle);
+  --color-foreground-on-accent: var(--foreground-on-accent);
+
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-border-input: var(--border-input);
+  --color-border-focus: var(--border-focus);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-ring: var(--accent-ring);
+  --color-accent-text: var(--accent-text);
+
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-soft: var(--success-soft);
+  --color-success-muted: var(--success-muted);
+  --color-success-ring: var(--success-ring);
+  --color-success-text: var(--success-text);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-muted: var(--danger-muted);
+  --color-danger-ring: var(--danger-ring);
+  --color-danger-text: var(--danger-text);
+
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-ring: var(--warning-ring);
+  --color-warning-text: var(--warning-text);
+
+  --color-info: var(--info);
+  --color-info-hover: var(--info-hover);
+  --color-info-soft: var(--info-soft);
+  --color-info-muted: var(--info-muted);
+  --color-info-ring: var(--info-ring);
+  --color-info-text: var(--info-text);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-axis: var(--chart-axis);
+
+  /* Radius — `control` is the 12px this design uses for buttons, inputs
+     and nav items; `card` is the 16px for panels; `card-lg` is the 24px
+     top corners of a mobile bottom sheet. */
+  --radius-control-sm: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-card-lg: 1.125rem;
+
+  /* Elevation */
+  --shadow-card: var(--elev-card);
+  --shadow-card-lg: var(--elev-card-lg);
+  --shadow-dropdown: var(--elev-dropdown);
+  --shadow-modal: var(--elev-modal);
+  --shadow-chrome: var(--elev-chrome);
+  --shadow-accent: var(--elev-accent);
+  --shadow-success: var(--elev-success);
+  --shadow-danger: var(--elev-danger);
+
+  /* Type — this design runs small. `label` and `micro` are the two sizes
+     below text-xs it uses for uppercase captions and badge counters. */
+  --text-nano: 0.5625rem;
+  --text-nano--line-height: 0.75rem;
+  --text-micro: 0.625rem;
+  --text-micro--line-height: 0.875rem;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1rem;
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Headings, page titles and figures. The redesign sets these in Space
+     Grotesk against Plus Jakarta body copy — the pairing is the typography. */
+  --font-display: var(--font-space-grotesk), var(--font-plus-jakarta),
+    ui-sans-serif, system-ui, sans-serif;
+
+  /* Motion */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-slide-up: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-modal-pop: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes slide-up {
+    0% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  --animate-shimmer: shimmer 1.3s ease-in-out infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: -420px 0;
+    }
+    100% {
+      background-position: 420px 0;
+    }
+  }
+
+  @keyframes modal-pop {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  /* Slim scrollbars — visible, but out of the way. */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 8px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  ::selection {
+    background-color: var(--color-accent-muted);
+  }
+}
+
+/* Lift a card on hover, with a slight overshoot on the way up. Pointer-only:
+   on touch there is no hover state to leave, so the card would stay raised. */
+@utility hover-lift {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card-lg);
+      border-color: var(--border-strong);
+    }
+  }
+}
+
+/* Press feedback for touch targets. */
+@utility press-scale {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* Skeleton fill: a sweep rather than a pulse, matching the redesign. */
+@utility skeleton-sheen {
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-inset) 25%,
+    var(--surface-muted) 37%,
+    var(--surface-inset) 63%
+  );
+  background-size: 420px 100%;
+  animation: var(--animate-shimmer);
+}
+
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Thermal receipt printing — only the receipt reaches the paper.
+   `visibility` rather than `display` so the printable node keeps its
+   layout box; toggling display on a parent would collapse it.
+   ============================================================ */
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-print-root],
+  [data-print-root] * {
+    visibility: visible;
+  }
+
+  [data-print-root] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 12px;
+    box-shadow: none;
+    border: none;
+  }
+
+  [data-no-print] {
+    display: none !important;
+  }
+}

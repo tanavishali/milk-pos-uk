@@ -1,0 +1,89 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@root/*": [
+        "./*"
+      ],
+      "@app/*": [
+        "./app/*"
+      ],
+      "@components/*": [
+        "./components/*"
+      ],
+      "@constants/*": [
+        "./constants/*"
+      ],
+      "@docs/*": [
+        "./docs/*"
+      ],
+      "@enums/*": [
+        "./enums/*"
+      ],
+      "@features/*": [
+        "./features/*"
+      ],
+      "@guards/*": [
+        "./guards/*"
+      ],
+      "@hooks/*": [
+        "./hooks/*"
+      ],
+      "@layouts/*": [
+        "./layouts/*"
+      ],
+      "@providers/*": [
+        "./providers/*"
+      ],
+      "@services/*": [
+        "./services/*"
+      ],
+      "@store/*": [
+        "./store/*"
+      ],
+      "@theme/*": [
+        "./theme/*"
+      ],
+      "@utils/*": [
+        "./utils/*"
+      ],
+      "@app-types/*": [
+        "./types/*"
+      ],
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
