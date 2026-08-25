@@ -24,7 +24,13 @@ export interface Order {
   /** `YYYY-MM-DD HH:mm`, matching what the receipt prints. */
   date: string;
   customer: OrderCustomer;
+  /**
+   * Who delivers it. `courier` is the name printed on the receipt; `courierId`
+   * is what a driver's own order list is scoped by — two couriers can share a
+   * name, and scoping by name would show one driver another's deliveries.
+   */
   courier: string;
+  courierId: string;
   items: OrderLine[];
   paymentType: PaymentType;
   total: number;
@@ -32,7 +38,8 @@ export interface Order {
 
 export interface OrderDraft {
   customerId: string;
-  courier: string;
+  /** The chosen courier's id; the name is resolved from it server-side. */
+  courierId: string;
   paymentType: PaymentType;
   items: OrderLine[];
 }

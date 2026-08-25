@@ -63,7 +63,7 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
     try {
       const order = await createOrder({
         customerId: wizard.customer.id,
-        courier: wizard.courier,
+        courierId: wizard.courierId,
         paymentType: wizard.paymentType,
         items: wizard.orderLines,
       }).unwrap();

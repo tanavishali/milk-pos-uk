@@ -1,3 +1,11 @@
+/** What a signed-in account is allowed to reach. */
+export enum UserRole {
+  /** Full terminal: registries, wizard, settings. */
+  Admin = "admin",
+  /** Their own deliveries and nothing else. */
+  Courier = "courier",
+}
+
 /** How a completed order was settled. */
 export enum PaymentType {
   Paid = "Paid",

@@ -98,7 +98,7 @@ describe("mock backend id uniqueness", () => {
   it("survives a reset and still continues the seed numbering", () => {
     const first = mockDb.orders.create({
       customerId: db.customers[0]!.id,
-      courier: "Bilal Khan",
+      courierId: "COUR-101",
       paymentType: PaymentType.Paid,
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -108,7 +108,7 @@ describe("mock backend id uniqueness", () => {
 
     const afterReset = mockDb.orders.create({
       customerId: db.customers[0]!.id,
-      courier: "Bilal Khan",
+      courierId: "COUR-101",
       paymentType: PaymentType.Paid,
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -122,7 +122,7 @@ describe("mock backend id uniqueness", () => {
     for (let i = 0; i < 200; i += 1) {
       mockDb.orders.create({
         customerId: customer.id,
-        courier: "Bilal Khan",
+        courierId: "COUR-101",
         paymentType: PaymentType.Paid,
         items: [
           { productId: product.id, name: product.name, qty: 1, price: 1 },

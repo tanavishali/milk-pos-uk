@@ -5,6 +5,8 @@
 export const paths = {
   root: "/",
   login: "/login",
+  /** Driver portal — a courier's own deliveries. */
+  myDeliveries: "/my-deliveries",
   dashboard: "/dashboard",
   orders: "/orders",
   customers: "/customers",

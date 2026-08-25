@@ -21,7 +21,7 @@ const INITIAL_STATE = {
   step: WizardStep.Customer as WizardStep,
   customer: undefined as Customer | undefined,
   cart: {} as Cart,
-  courier: "",
+  courierId: "",
   paymentType: PaymentType.Paid,
 };
 
@@ -34,7 +34,7 @@ export function useOrderWizard() {
   const [step, setStep] = useState<WizardStep>(INITIAL_STATE.step);
   const [customer, setCustomer] = useState(INITIAL_STATE.customer);
   const [cart, setCart] = useState<Cart>(INITIAL_STATE.cart);
-  const [courier, setCourier] = useState(INITIAL_STATE.courier);
+  const [courierId, setCourierId] = useState(INITIAL_STATE.courierId);
   const [paymentType, setPaymentType] = useState(INITIAL_STATE.paymentType);
   const [error, setError] = useState<string | undefined>();
 
@@ -47,7 +47,7 @@ export function useOrderWizard() {
     setStep(INITIAL_STATE.step);
     setCustomer(INITIAL_STATE.customer);
     setCart({});
-    setCourier("");
+    setCourierId("");
     setPaymentType(PaymentType.Paid);
     setError(undefined);
   }, []);
@@ -189,8 +189,8 @@ export function useOrderWizard() {
     customer,
     setCustomer,
     cart,
-    courier,
-    setCourier,
+    courierId,
+    setCourierId,
     paymentType,
     setPaymentType,
     error,

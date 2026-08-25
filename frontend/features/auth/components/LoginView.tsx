@@ -4,7 +4,12 @@ import { LuEye, LuEyeOff, LuLogIn, LuShieldCheck } from "react-icons/lu";
 import { useState } from "react";
 import { Button } from "@components/ui/buttons";
 import { FormField, inputClass } from "@components/ui/fields";
-import { APP_NAME, APP_TAGLINE, DEMO_CREDENTIALS } from "@constants/index";
+import {
+  APP_NAME,
+  APP_TAGLINE,
+  DEMO_COURIER,
+  DEMO_CREDENTIALS,
+} from "@constants/index";
 import { useAppDispatch } from "@store/hooks";
 import { signIn } from "@store/slices/authSlice";
 import { useSignInMutation } from "../api/authApi";
@@ -31,9 +36,9 @@ export function LoginView() {
     }
   };
 
-  const fillDemo = () => {
-    setEmail(DEMO_CREDENTIALS.email);
-    setPassword(DEMO_CREDENTIALS.password);
+  const fill = (pair: { email: string; password: string }) => {
+    setEmail(pair.email);
+    setPassword(pair.password);
     setError(undefined);
   };
 
@@ -86,10 +91,10 @@ export function LoginView() {
 
           <div className="bg-surface border-border rounded-card border p-5 shadow-card sm:p-6">
             <h2 className="text-foreground-strong text-sm font-extrabold">
-              Sign in to your terminal
+              Sign in
             </h2>
             <p className="text-foreground-subtle mt-0.5 text-xs">
-              Enter your operator credentials to open the till.
+              Managers get the full terminal; drivers get their own deliveries.
             </p>
 
             <form
@@ -161,32 +166,55 @@ export function LoginView() {
             </form>
           </div>
 
-          {/* Demo credentials are on screen deliberately: this is a prototype
-              with a hard-coded pair and no way to register. */}
+          {/* On screen deliberately: this is a prototype with hard-coded
+              accounts and no way to register. Two roles, so two pairs. */}
           <div className="border-accent-ring bg-accent-soft rounded-card mt-3 border p-3">
-            <p className="text-accent-text flex items-center gap-1.5 text-micro font-bold uppercase">
+            <p className="text-accent-text text-micro flex items-center gap-1.5 font-bold uppercase">
               <LuShieldCheck className="h-3.5 w-3.5" aria-hidden />
-              Demo credentials
+              Demo accounts
             </p>
-            <dl className="text-foreground-body mt-1.5 space-y-0.5 font-mono text-xs">
-              <div className="flex gap-1.5">
-                <dt className="text-foreground-subtle">email</dt>
-                <dd className="wrap-break-word font-semibold">
-                  {DEMO_CREDENTIALS.email}
-                </dd>
-              </div>
-              <div className="flex gap-1.5">
-                <dt className="text-foreground-subtle">pass</dt>
-                <dd className="font-semibold">{DEMO_CREDENTIALS.password}</dd>
-              </div>
-            </dl>
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="text-accent-text mt-2 text-micro font-bold underline underline-offset-2"
-            >
-              Fill these in
-            </button>
+
+            <div className="mt-2 space-y-2">
+              {[
+                {
+                  role: "Manager",
+                  blurb: "Full terminal",
+                  pair: DEMO_CREDENTIALS,
+                },
+                {
+                  role: "Driver",
+                  blurb: "Own deliveries only",
+                  pair: DEMO_COURIER,
+                },
+              ].map((account) => (
+                <div
+                  key={account.role}
+                  className="bg-surface border-border rounded-control border p-2.5"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-foreground-strong text-xs font-bold">
+                      {account.role}
+                    </p>
+                    <p className="text-foreground-subtle text-nano">
+                      {account.blurb}
+                    </p>
+                  </div>
+                  <p className="text-foreground-body mt-1 font-mono text-[11px] wrap-break-word">
+                    {account.pair.email}
+                  </p>
+                  <p className="text-foreground-body font-mono text-[11px]">
+                    {account.pair.password}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => fill(account.pair)}
+                    className="text-accent-text text-micro mt-1.5 font-bold underline underline-offset-2"
+                  >
+                    Use this account
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </main>

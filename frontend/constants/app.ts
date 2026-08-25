@@ -26,5 +26,18 @@ export const DEMO_CREDENTIALS = {
   password: "blanksys123",
 } as const;
 
+/**
+ * Every seeded courier signs in with this. A real system issues a credential per
+ * driver at onboarding; this exists so the driver portal is reachable in a demo
+ * without creating an account first.
+ */
+export const COURIER_DEFAULT_PASSWORD = "driver123";
+
+/** A courier to sign in as, surfaced on the login screen beside the admin pair. */
+export const DEMO_COURIER = {
+  email: "bilal.khan@blanksys.pos",
+  password: COURIER_DEFAULT_PASSWORD,
+} as const;
+
 /** Rows per page in every registry view. */
 export const PAGE_SIZE = 10;

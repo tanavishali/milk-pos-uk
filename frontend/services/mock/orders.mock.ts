@@ -26,6 +26,10 @@ export const ordersMock = {
     const lines = draft.items.filter((line) => line.qty > 0);
     if (lines.length === 0) throw new Error("An order needs at least one line");
 
+    // The name is resolved from the id, not taken from the caller — so the
+    // receipt and the driver's scope can never disagree about who delivers it.
+    const courier = db.couriers.find((c) => c.id === draft.courierId);
+
     const id = nextId("TRX", db.orders);
     assertUniqueId("orders", id, db.orders);
 
@@ -37,7 +41,8 @@ export const ordersMock = {
         phone: customer.phone,
         address: customer.address,
       },
-      courier: draft.courier || "Unassigned",
+      courier: courier?.name ?? "Unassigned",
+      courierId: courier?.id ?? "",
       items: lines,
       paymentType: draft.paymentType,
       total: lines.reduce((sum, line) => sum + line.qty * line.price, 0),
@@ -46,6 +51,14 @@ export const ordersMock = {
     db.orders.unshift(created);
     productsMock.decrementStock(lines);
     return clone(created);
+  },
+
+  /**
+   * One courier's deliveries. Scoped by id, never by name: two couriers can
+   * share a name, and matching on it would show a driver someone else's work.
+   */
+  forCourier(courierId: string): Order[] {
+    return clone(db.orders.filter((o) => o.courierId === courierId));
   },
 
   metrics(): DashboardMetrics {

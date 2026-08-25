@@ -36,11 +36,13 @@ export function WizardDispatchStep({
       <FormField label="Select Delivery Courier" htmlFor="wizard-courier">
         <Select
           id="wizard-courier"
-          value={wizard.courier}
-          onChange={(event) => wizard.setCourier(event.target.value)}
+          value={wizard.courierId}
+          onChange={(event) => wizard.setCourierId(event.target.value)}
           placeholder="Unassigned"
+          // Value is the id, not the name: the order scopes a driver's own
+          // deliveries by id, and two couriers can share a name.
           options={couriers.map((c) => ({
-            value: c.name,
+            value: c.id,
             label: `${c.name} (${c.phone})`,
           }))}
         />
