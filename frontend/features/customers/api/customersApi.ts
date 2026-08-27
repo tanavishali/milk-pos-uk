@@ -3,6 +3,7 @@ import { baseApi } from "@services/api/baseApi";
 import { tags } from "@services/api/tags";
 import {
   READ_FAILURE_MESSAGE,
+  WRITE_LATENCY_MS,
   delay,
   mockDb,
   shouldFailRead,
@@ -25,7 +26,10 @@ export const customersApi = baseApi.injectEndpoints({
     }),
 
     createCustomer: build.mutation<Customer, CustomerDraft>({
-      queryFn: (draft) => ({ data: mockDb.customers.create(draft) }),
+      queryFn: async (draft) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.customers.create(draft) };
+      },
       invalidatesTags: [tags.Customer, tags.DashboardMetrics],
     }),
 
@@ -33,12 +37,18 @@ export const customersApi = baseApi.injectEndpoints({
       Customer,
       { id: string; draft: CustomerDraft }
     >({
-      queryFn: ({ id, draft }) => ({ data: mockDb.customers.update(id, draft) }),
+      queryFn: async ({ id, draft }) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.customers.update(id, draft) };
+      },
       invalidatesTags: [tags.Customer],
     }),
 
     deleteCustomer: build.mutation<string, string>({
-      queryFn: (id) => ({ data: mockDb.customers.remove(id) }),
+      queryFn: async (id) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.customers.remove(id) };
+      },
       invalidatesTags: [tags.Customer, tags.DashboardMetrics],
     }),
   }),

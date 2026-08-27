@@ -3,6 +3,7 @@ import { baseApi } from "@services/api/baseApi";
 import { tags } from "@services/api/tags";
 import {
   READ_FAILURE_MESSAGE,
+  WRITE_LATENCY_MS,
   delay,
   mockDb,
   shouldFailRead,
@@ -29,22 +30,36 @@ export const productsApi = baseApi.injectEndpoints({
     }),
 
     createCategory: build.mutation<string[], string>({
-      queryFn: (name) => ({ data: mockDb.categories.create(name) }),
+      queryFn: async (name) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.categories.create(name) };
+      },
       invalidatesTags: [tags.Category],
     }),
 
     createProduct: build.mutation<Product, ProductDraft>({
-      queryFn: (draft) => ({ data: mockDb.products.create(draft) }),
+      queryFn: async (draft) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.products.create(draft) };
+      },
       invalidatesTags: [tags.Product],
     }),
 
-    updateProduct: build.mutation<Product, { id: string; draft: ProductDraft }>({
-      queryFn: ({ id, draft }) => ({ data: mockDb.products.update(id, draft) }),
-      invalidatesTags: [tags.Product],
-    }),
+    updateProduct: build.mutation<Product, { id: string; draft: ProductDraft }>(
+      {
+        queryFn: async ({ id, draft }) => {
+          await delay(WRITE_LATENCY_MS);
+          return { data: mockDb.products.update(id, draft) };
+        },
+        invalidatesTags: [tags.Product],
+      },
+    ),
 
     deleteProduct: build.mutation<string, string>({
-      queryFn: (id) => ({ data: mockDb.products.remove(id) }),
+      queryFn: async (id) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.products.remove(id) };
+      },
       invalidatesTags: [tags.Product],
     }),
   }),

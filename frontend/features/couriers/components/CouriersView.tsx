@@ -47,6 +47,7 @@ import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { setViewMode } from "@store/slices/uiSlice";
 import { cityOf, distinctCount } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
+import { reportError } from "@utils/libs/reportError";
 // The api module, not the feature barrel — see the note in CustomersView.
 import { useGetOrdersQuery } from "@features/orders/api/ordersApi";
 import {
@@ -64,12 +65,13 @@ export function CouriersView() {
     isError,
     refetch,
   } = useGetCouriersQuery();
-  const [deleteCourier] = useDeleteCourierMutation();
+  const [deleteCourier, { isLoading: deleting }] = useDeleteCourierMutation();
 
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Courier | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Courier | undefined>();
+  const [deleteError, setDeleteError] = useState<string | undefined>();
   const [viewing, setViewing] = useState<Courier | undefined>();
 
   const { data: orders = [] } = useGetOrdersQuery();
@@ -108,8 +110,22 @@ export function CouriersView() {
   };
 
   const confirmDelete = async () => {
-    if (pendingDelete) await deleteCourier(pendingDelete.id).unwrap();
+    if (!pendingDelete) return;
+    setDeleteError(undefined);
+    try {
+      await deleteCourier(pendingDelete.id).unwrap();
+      setPendingDelete(undefined);
+    } catch (error) {
+      // The dialog stays open carrying the reason. Closing on a failure would
+      // read as "deleted" for a record that is still there.
+      reportError(error, "deleteCourier");
+      setDeleteError("Could not delete this courier. Please try again.");
+    }
+  };
+
+  const cancelDelete = () => {
     setPendingDelete(undefined);
+    setDeleteError(undefined);
   };
 
   return (
@@ -197,10 +213,10 @@ export function CouriersView() {
       ) : filtered.length === 0 ? (
         <EmptyState message="No couriers found" icon={LuUserX} />
       ) : viewMode === ViewMode.Grid ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((courier) => (
             <Card key={courier.id} interactive padded={false}>
-              <div className="p-[18px] pb-3.5">
+              <div className="flex-1 p-[18px] pb-3.5">
                 <div className="mb-3.5 flex items-center gap-3">
                   <Avatar name={courier.name} seed={courier.id} />
                   <div className="min-w-0">
@@ -362,8 +378,10 @@ export function CouriersView() {
         <ConfirmDialog
           title="Delete courier?"
           message={`${pendingDelete.name} will be removed from the dispatch roster. Orders already assigned to them keep the name on the receipt.`}
+          loading={deleting}
+          error={deleteError}
           onConfirm={() => void confirmDelete()}
-          onCancel={() => setPendingDelete(undefined)}
+          onCancel={cancelDelete}
         />
       ) : null}
     </div>

@@ -2,7 +2,9 @@
 
 import { LuLogOut } from "react-icons/lu";
 import type { ReactNode } from "react";
+import { LoaderBar } from "@components/ui/states";
 import { APP_NAME } from "@constants/index";
+import { useIsWriting } from "@hooks/index";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { signOut } from "@store/slices/authSlice";
 import { initials } from "@utils/helper/format";
@@ -19,9 +21,11 @@ export function DriverShell({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const name = user?.name ?? "Courier";
+  const writing = useIsWriting();
 
   return (
-    <div className="bg-background flex min-h-screen flex-col">
+    <div className="bg-background relative flex min-h-screen flex-col">
+      <LoaderBar active={writing} />
       <header className="bg-chrome text-chrome-foreground flex h-14 shrink-0 items-center justify-between px-4 sm:h-16 sm:px-6">
         <div className="flex flex-col">
           <span className="text-chrome-foreground text-base leading-tight font-extrabold tracking-wider sm:text-lg">

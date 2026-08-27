@@ -158,10 +158,11 @@ export function LoginView() {
               <Button
                 type="submit"
                 icon={LuLogIn}
-                disabled={isLoading}
+                loading={isLoading}
+                loadingLabel="Signing in..."
                 className="w-full"
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                Sign In
               </Button>
             </form>
           </div>

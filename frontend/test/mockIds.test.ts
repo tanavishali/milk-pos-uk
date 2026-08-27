@@ -87,8 +87,11 @@ describe("mock backend id uniqueness", () => {
       mockDb.customers.create({
         name: `Test ${i}`,
         phone: "+92 300 0000000",
-        idcard: "00000-0000000-0",
+        round: "",
+        deliveryDays: [],
+        email: "test@example.com",
         address: "Nowhere",
+        postcode: "00000",
       });
     }
     const ids = db.customers.map((c) => c.id);
@@ -99,6 +102,7 @@ describe("mock backend id uniqueness", () => {
     const first = mockDb.orders.create({
       customerId: db.customers[0]!.id,
       courierId: "COUR-101",
+      includePrevious: false,
       paymentType: PaymentType.Paid,
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -109,6 +113,7 @@ describe("mock backend id uniqueness", () => {
     const afterReset = mockDb.orders.create({
       customerId: db.customers[0]!.id,
       courierId: "COUR-101",
+      includePrevious: false,
       paymentType: PaymentType.Paid,
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -123,6 +128,7 @@ describe("mock backend id uniqueness", () => {
       mockDb.orders.create({
         customerId: customer.id,
         courierId: "COUR-101",
+        includePrevious: false,
         paymentType: PaymentType.Paid,
         items: [
           { productId: product.id, name: product.name, qty: 1, price: 1 },
@@ -134,5 +140,82 @@ describe("mock backend id uniqueness", () => {
     expect(new Set(ids).size).toBe(ids.length);
     // And none of them landed on a seed id.
     expect(ids.filter((id) => id === "TRX-8904")).toHaveLength(1);
+  });
+});
+
+describe("carried-forward balance", () => {
+  beforeEach(resetDatabase);
+
+  const draft = (
+    paymentType: PaymentType,
+    includePrevious: boolean,
+    price = 10,
+  ) => ({
+    customerId: "CUST-101",
+    courierId: "COUR-101",
+    paymentType,
+    includePrevious,
+    items: [{ productId: "PROD-101", name: "Cake", qty: 1, price }],
+  });
+
+  it("reports nil when the customer owes nothing", () => {
+    // CUST-101's seeded order is Paid, so there is nothing outstanding.
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(0);
+  });
+
+  it("carries an unpaid bill into the next one and totals both", () => {
+    const first = mockDb.orders.create(draft(PaymentType.OnCredit, false, 10));
+    expect(first.grandTotal).toBe(10);
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(10);
+
+    const second = mockDb.orders.create(draft(PaymentType.Paid, true, 25));
+    expect(second.total).toBe(25);
+    expect(second.previousBalance).toBe(10);
+    expect(second.grandTotal).toBe(35);
+  });
+
+  /**
+   * The hazard this feature introduces: if carrying a debt forward does not
+   * settle the bill it came from, the same money is billed again on every
+   * subsequent visit.
+   */
+  it("does not bill the same debt twice", () => {
+    mockDb.orders.create(draft(PaymentType.OnCredit, false, 10));
+    mockDb.orders.create(draft(PaymentType.Paid, true, 25));
+
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(0);
+
+    const third = mockDb.orders.create(draft(PaymentType.Paid, true, 5));
+    expect(third.previousBalance).toBe(0);
+    expect(third.grandTotal).toBe(5);
+  });
+
+  it("leaves the debt outstanding when it is not carried", () => {
+    mockDb.orders.create(draft(PaymentType.OnCredit, false, 10));
+    const next = mockDb.orders.create(draft(PaymentType.Paid, false, 25));
+
+    expect(next.previousBalance).toBe(0);
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(10);
+  });
+
+  it("rolls a credit bill forward into another credit bill", () => {
+    mockDb.orders.create(draft(PaymentType.OnCredit, false, 10));
+    const rolled = mockDb.orders.create(draft(PaymentType.OnCredit, true, 20));
+
+    expect(rolled.grandTotal).toBe(30);
+    // The old bill is settled by the new one, which now carries the whole debt.
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(30);
+  });
+
+  it("scopes outstanding to one customer", () => {
+    // CUST-102 arrives with a seeded unpaid bill of its own; CUST-101 running up
+    // a debt must not change it.
+    const before = mockDb.orders.outstanding("CUST-102").total;
+    expect(before).toBeGreaterThan(0);
+
+    mockDb.orders.create(draft(PaymentType.OnCredit, false, 10));
+
+    expect(mockDb.orders.outstanding("CUST-102").total).toBe(before);
+    expect(mockDb.orders.outstanding("CUST-101").total).toBe(10);
   });
 });

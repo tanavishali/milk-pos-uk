@@ -3,4 +3,8 @@ export { OrderWizard } from "./components/OrderWizard";
 export { InvoiceModal } from "./components/InvoiceModal";
 export { useOrderWizard } from "./hooks/useOrderWizard";
 export type { CartLine, OrderWizardController } from "./hooks/useOrderWizard";
-export { useGetOrdersQuery, useCreateOrderMutation } from "./api/ordersApi";
+export {
+  useGetOrdersQuery,
+  useGetOutstandingQuery,
+  useCreateOrderMutation,
+} from "./api/ordersApi";

@@ -3,7 +3,7 @@
 import type { Order } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
 import { Modal } from "@components/ui/modals";
-import { ErrorState } from "@components/ui/states";
+import { ErrorState, LoaderOverlay } from "@components/ui/states";
 import { WizardStep } from "@enums/index";
 import { useGetCouriersQuery } from "@features/couriers/api/couriersApi";
 import { useGetCustomersQuery } from "@features/customers/api/customersApi";
@@ -15,6 +15,7 @@ import { reportError } from "@utils/libs/reportError";
 import { useCreateOrderMutation } from "../api/ordersApi";
 import { useOrderWizard } from "../hooks/useOrderWizard";
 import { WizardCustomerStep } from "./WizardCustomerStep";
+import { WizardBalanceStep } from "./WizardBalanceStep";
 import { WizardDispatchStep } from "./WizardDispatchStep";
 import { WizardItemsStep } from "./WizardItemsStep";
 import { WizardStepper } from "./WizardStepper";
@@ -65,6 +66,7 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
         customerId: wizard.customer.id,
         courierId: wizard.courierId,
         paymentType: wizard.paymentType,
+        includePrevious: wizard.includePrevious,
         items: wizard.orderLines,
       }).unwrap();
 
@@ -92,24 +94,37 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
       footer={
         <div className="flex flex-1 justify-between gap-2">
           {wizard.step > WizardStep.Customer ? (
-            <Button variant="secondary" block onClick={wizard.back}>
+            <Button
+              variant="secondary"
+              block
+              onClick={wizard.back}
+              disabled={issuing}
+            >
               Previous
             </Button>
           ) : null}
-          <Button variant="ghost" block onClick={onClose}>
+          <Button variant="ghost" block onClick={onClose} disabled={issuing}>
             Cancel
           </Button>
-          <Button block disabled={issuing} onClick={onNext}>
-            {wizard.step === WizardStep.Dispatch
-              ? issuing
-                ? "Issuing..."
-                : "Confirm & Issue Receipt"
+          <Button
+            block
+            loading={issuing}
+            loadingLabel="Issuing..."
+            onClick={onNext}
+          >
+            {wizard.step === WizardStep.Balance
+              ? "Confirm & Issue Receipt"
               : "Continue"}
           </Button>
         </div>
       }
     >
-      <div className="space-y-2.5">
+      <div className="relative space-y-2.5">
+        {/* Covers the cart while the order is being issued: the lines have
+            already been priced, so a quantity changed now would print a receipt
+            that does not match what was charged. */}
+        {issuing ? <LoaderOverlay label="Issuing receipt..." /> : null}
+
         {loadFailed ? (
           <ErrorState
             inset
@@ -146,6 +161,10 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
 
         {wizard.step === WizardStep.Dispatch ? (
           <WizardDispatchStep couriers={couriers} wizard={wizard} />
+        ) : null}
+
+        {wizard.step === WizardStep.Balance ? (
+          <WizardBalanceStep wizard={wizard} />
         ) : null}
       </div>
     </Modal>

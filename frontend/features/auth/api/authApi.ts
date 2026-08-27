@@ -1,12 +1,13 @@
 import type { AuthUser, Credentials } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
 import { tags } from "@services/api/tags";
-import { mockDb } from "@services/mock/index";
+import { WRITE_LATENCY_MS, delay, mockDb } from "@services/mock/index";
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     signIn: build.mutation<AuthUser, Credentials>({
-      queryFn: (credentials) => {
+      queryFn: async (credentials) => {
+        await delay(WRITE_LATENCY_MS);
         try {
           return { data: mockDb.auth.signIn(credentials) };
         } catch (error) {

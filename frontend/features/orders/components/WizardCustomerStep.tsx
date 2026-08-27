@@ -3,8 +3,10 @@
 import { LuCheck, LuUserX } from "react-icons/lu";
 import { useMemo, useState } from "react";
 import type { Customer } from "@app-types/index";
+import { DayChips } from "@components/ui/data-display";
 import { SearchInput } from "@components/ui/fields";
 import { EmptyState } from "@components/ui/states";
+import { roundLabel } from "@constants/index";
 import { matchesQuery } from "@utils/helper/search";
 import { cn } from "@utils/libs/cn";
 
@@ -24,7 +26,15 @@ export function WizardCustomerStep({
   const filtered = useMemo(
     () =>
       customers.filter((c) =>
-        matchesQuery(search, c.name, c.phone, c.idcard, c.address),
+        matchesQuery(
+          search,
+          c.name,
+          c.phone,
+          c.email,
+          c.address,
+          c.postcode,
+          roundLabel(c.round),
+        ),
       ),
     [customers, search],
   );
@@ -44,7 +54,7 @@ export function WizardCustomerStep({
         value={search}
         onChange={setSearch}
         clearable
-        placeholder="Search by customer name, phone, or ID..."
+        placeholder="Search by name, phone, email, round, or postcode..."
       />
 
       {filtered.length === 0 ? (
@@ -76,10 +86,18 @@ export function WizardCustomerStep({
                     {customer.name}
                   </span>
                   <span className="text-micro text-foreground-subtle block truncate">
-                    {customer.phone} &bull; ID: {customer.idcard}
+                    {customer.phone} &bull; {customer.email}
                   </span>
-                  <span className="text-nano text-foreground-subtle block truncate">
-                    {customer.address}
+                  {/* The round matters when issuing an order: it tells the
+                      cashier which day this drop actually goes out on. */}
+                  <span className="mt-1 flex items-center gap-2">
+                    <DayChips days={customer.deliveryDays} />
+                    <span className="text-nano text-foreground-subtle truncate">
+                      {roundLabel(customer.round)}
+                    </span>
+                  </span>
+                  <span className="text-nano text-foreground-subtle mt-0.5 block truncate">
+                    {customer.address} &middot; {customer.postcode}
                   </span>
                 </span>
                 <span

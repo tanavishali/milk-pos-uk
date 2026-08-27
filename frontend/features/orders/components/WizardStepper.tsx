@@ -1,7 +1,12 @@
 import { WizardStep } from "@enums/index";
 import { cn } from "@utils/libs/cn";
 
-const STEPS = [WizardStep.Customer, WizardStep.Items, WizardStep.Dispatch];
+const STEPS = [
+  WizardStep.Customer,
+  WizardStep.Items,
+  WizardStep.Dispatch,
+  WizardStep.Balance,
+];
 
 /** Three dots: current is accent and slightly larger, completed are green. */
 export function WizardStepper({ current }: { current: WizardStep }) {

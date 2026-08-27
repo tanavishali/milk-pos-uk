@@ -187,8 +187,8 @@
   /* Elevation */
   --elev-card: 0 1px 2px 0 rgb(2 6 23 / 0.4);
   --elev-card-lg: 0 10px 20px -6px rgb(2 6 23 / 0.6);
-  --elev-dropdown: 0 12px 32px -8px rgb(2 6 23 / 0.7),
-    0 4px 8px -4px rgb(2 6 23 / 0.5);
+  --elev-dropdown:
+    0 12px 32px -8px rgb(2 6 23 / 0.7), 0 4px 8px -4px rgb(2 6 23 / 0.5);
   --elev-modal: 0 24px 48px -12px rgb(2 6 23 / 0.8);
   --elev-chrome: 0 4px 6px -1px rgb(2 6 23 / 0.5);
   --elev-accent: 0 4px 10px -2px rgb(59 130 246 / 0.4);
@@ -301,13 +301,15 @@
   --text-label: 0.6875rem;
   --text-label--line-height: 1rem;
 
-  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui,
-    -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
 
   /* Headings, page titles and figures. The redesign sets these in Space
      Grotesk against Plus Jakarta body copy — the pairing is the typography. */
-  --font-display: var(--font-space-grotesk), var(--font-plus-jakarta),
-    ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-space-grotesk), var(--font-plus-jakarta), ui-sans-serif,
+    system-ui, sans-serif;
 
   /* Motion */
   --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
@@ -333,6 +335,19 @@
     }
     100% {
       opacity: 1;
+    }
+  }
+
+  /* The indeterminate shell bar: a short segment crossing the full width. */
+  --animate-loader-track: loader-track 1.05s cubic-bezier(0.65, 0, 0.35, 1)
+    infinite;
+
+  @keyframes loader-track {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
     }
   }
 

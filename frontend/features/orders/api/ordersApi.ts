@@ -3,6 +3,7 @@ import { baseApi } from "@services/api/baseApi";
 import { tags } from "@services/api/tags";
 import {
   READ_FAILURE_MESSAGE,
+  WRITE_LATENCY_MS,
   delay,
   mockDb,
   shouldFailRead,
@@ -19,8 +20,19 @@ export const ordersApi = baseApi.injectEndpoints({
       providesTags: [tags.Order],
     }),
 
+    /** What a customer still owes from earlier bills, and on which ones. */
+    getOutstanding: build.query<{ orders: Order[]; total: number }, string>({
+      queryFn: async (customerId) => {
+        await delay();
+        if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
+        return { data: mockDb.orders.outstanding(customerId) };
+      },
+      providesTags: [tags.Order],
+    }),
+
     createOrder: build.mutation<Order, OrderDraft>({
-      queryFn: (draft) => {
+      queryFn: async (draft) => {
+        await delay(WRITE_LATENCY_MS);
         try {
           return { data: mockDb.orders.create(draft) };
         } catch (error) {
@@ -33,4 +45,8 @@ export const ordersApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetOrdersQuery, useCreateOrderMutation } = ordersApi;
+export const {
+  useGetOrdersQuery,
+  useGetOutstandingQuery,
+  useCreateOrderMutation,
+} = ordersApi;

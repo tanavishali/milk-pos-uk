@@ -29,10 +29,15 @@ export function CategoryModal({ onClose }: { onClose: () => void }) {
       size="sm"
       footer={
         <div className="flex flex-1 justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button type="submit" form="category-form" disabled={isLoading}>
+          <Button
+            type="submit"
+            form="category-form"
+            loading={isLoading}
+            loadingLabel="Saving..."
+          >
             Save Category
           </Button>
         </div>

@@ -21,8 +21,7 @@ export function shouldFailRead(): boolean {
   return failReads;
 }
 
-export const READ_FAILURE_MESSAGE =
-  "The terminal could not reach the server.";
+export const READ_FAILURE_MESSAGE = "The terminal could not reach the server.";
 
 declare global {
   interface Window {

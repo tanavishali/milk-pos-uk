@@ -2,7 +2,18 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Customer, OrderLine, Product } from "@app-types/index";
-import { PaymentType, WizardStep } from "@enums/index";
+import { PaymentType, WEEKDAYS, Weekday, WizardStep } from "@enums/index";
+
+/**
+ * Which delivery slot a cart line belongs to.
+ *
+ * `"once"` is the slot used when the customer is on no round — a walk-in still
+ * needs somewhere to put items, and naming that case keeps the rest of the code
+ * from special-casing `undefined` everywhere.
+ */
+export type DayKey = Weekday | "once";
+
+export const ONE_OFF = "once" as const;
 
 /** A cart line while it is still being edited. */
 export interface CartLine {
@@ -13,17 +24,23 @@ export interface CartLine {
   price: number;
   /** Kept so the UI can show what the standard price was. */
   defaultPrice: number;
+  day: DayKey;
 }
 
+/**
+ * Keyed by day *and* product, so the same item can sit on two days at different
+ * quantities — two pints on Monday, one on Thursday.
+ */
 export type Cart = Record<string, CartLine>;
 
-const INITIAL_STATE = {
-  step: WizardStep.Customer as WizardStep,
-  customer: undefined as Customer | undefined,
-  cart: {} as Cart,
-  courierId: "",
-  paymentType: PaymentType.Paid,
-};
+const keyOf = (day: DayKey, productId: string) => `${day}::${productId}`;
+
+export interface DayBucket {
+  day: DayKey;
+  lines: CartLine[];
+  itemCount: number;
+  total: number;
+}
 
 /**
  * The wizard's state machine. Lives in a hook rather than the Redux store
@@ -31,115 +48,156 @@ const INITIAL_STATE = {
  * it, which a store slice would have to remember to do.
  */
 export function useOrderWizard() {
-  const [step, setStep] = useState<WizardStep>(INITIAL_STATE.step);
-  const [customer, setCustomer] = useState(INITIAL_STATE.customer);
-  const [cart, setCart] = useState<Cart>(INITIAL_STATE.cart);
-  const [courierId, setCourierId] = useState(INITIAL_STATE.courierId);
-  const [paymentType, setPaymentType] = useState(INITIAL_STATE.paymentType);
+  const [step, setStep] = useState<WizardStep>(WizardStep.Customer);
+  const [customer, setCustomerState] = useState<Customer | undefined>();
+  const [cart, setCart] = useState<Cart>({});
+  const [courierId, setCourierId] = useState("");
+  const [paymentType, setPaymentType] = useState(PaymentType.Paid);
   const [error, setError] = useState<string | undefined>();
+  const [requestedDay, setRequestedDay] = useState<DayKey | undefined>();
+  // Defaults on: if a customer owes money, the till should ask for it.
+  const [includePrevious, setIncludePrevious] = useState(true);
 
   /**
-   * Not used by `OrderWizard`, which gets a fresh controller from being mounted
-   * per open. Kept for a caller that needs to clear a still-mounted wizard —
-   * "new sale" without closing the dialog.
+   * The slots this order can be split across: the customer's round in
+   * Monday-first order, or a single one-off slot when they have no round.
    */
+  const days = useMemo<DayKey[]>(() => {
+    const scheduled = WEEKDAYS.filter((d) =>
+      customer?.deliveryDays.includes(d),
+    );
+    return scheduled.length > 0 ? scheduled : [ONE_OFF];
+  }, [customer]);
+
+  /**
+   * Derived, not stored: going back and picking a customer on a different round
+   * would otherwise leave the tab pointing at a day that no longer exists.
+   */
+  const activeDay: DayKey =
+    requestedDay && days.includes(requestedDay) ? requestedDay : days[0]!;
+
+  /** Changing customer clears the cart — a different round is a different order. */
+  const setCustomer = useCallback((next: Customer) => {
+    setCustomerState((prev) => {
+      if (prev && prev.id !== next.id) {
+        setCart({});
+        setRequestedDay(undefined);
+      }
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
-    setStep(INITIAL_STATE.step);
-    setCustomer(INITIAL_STATE.customer);
+    setStep(WizardStep.Customer);
+    setCustomerState(undefined);
     setCart({});
     setCourierId("");
     setPaymentType(PaymentType.Paid);
     setError(undefined);
+    setRequestedDay(undefined);
+    setIncludePrevious(true);
   }, []);
 
-  /** Lines with a real quantity — the only ones that become order lines. */
+  /** Only lines on a day this order still covers, with a real quantity. */
   const activeLines = useMemo(
-    () => Object.values(cart).filter((line) => line.qty > 0),
-    [cart],
+    () =>
+      Object.values(cart).filter(
+        (line) => line.qty > 0 && days.includes(line.day),
+      ),
+    [cart, days],
   );
 
   const total = useMemo(
-    () => activeLines.reduce((sum, line) => sum + line.qty * line.price, 0),
+    () => activeLines.reduce((sum, l) => sum + l.qty * l.price, 0),
     [activeLines],
   );
 
   const itemCount = useMemo(
-    () => activeLines.reduce((sum, line) => sum + line.qty, 0),
+    () => activeLines.reduce((sum, l) => sum + l.qty, 0),
     [activeLines],
   );
 
-  /** Seed a line from its product the first time it is touched. */
+  /** One bucket per day, in round order — what step 3 and the receipt group by. */
+  const buckets = useMemo<DayBucket[]>(
+    () =>
+      days.map((day) => {
+        const lines = activeLines.filter((l) => l.day === day);
+        return {
+          day,
+          lines,
+          itemCount: lines.reduce((n, l) => n + l.qty, 0),
+          total: lines.reduce((n, l) => n + l.qty * l.price, 0),
+        };
+      }),
+    [days, activeLines],
+  );
+
+  /** The line for a product on the currently open day, if any. */
   const lineFor = useCallback(
-    (product: Product, existing?: CartLine): CartLine =>
-      existing ?? {
-        productId: product.id,
-        name: product.name,
-        qty: 0,
-        price: product.salePrice,
-        defaultPrice: product.salePrice,
-      },
-    [],
+    (productId: string): CartLine | undefined =>
+      cart[keyOf(activeDay, productId)],
+    [cart, activeDay],
+  );
+
+  const write = useCallback(
+    (product: Product, mutate: (line: CartLine) => CartLine) => {
+      setCart((prev) => {
+        const key = keyOf(activeDay, product.id);
+        const existing = prev[key] ?? {
+          productId: product.id,
+          name: product.name,
+          qty: 0,
+          price: product.salePrice,
+          defaultPrice: product.salePrice,
+          day: activeDay,
+        };
+        return { ...prev, [key]: mutate(existing) };
+      });
+    },
+    [activeDay],
   );
 
   const toggleProduct = useCallback(
-    (product: Product, selected: boolean) => {
-      setCart((prev) => {
-        const line = lineFor(product, prev[product.id]);
-        return {
-          ...prev,
-          // Deselecting zeroes the quantity rather than dropping the line, so a
-          // price the cashier typed survives an accidental untick.
-          [product.id]: { ...line, qty: selected ? Math.max(1, line.qty) : 0 },
-        };
-      });
-    },
-    [lineFor],
+    (product: Product, selected: boolean) =>
+      write(product, (line) => ({
+        ...line,
+        // Deselecting zeroes the quantity rather than dropping the line, so a
+        // price the cashier typed survives an accidental untick.
+        qty: selected ? Math.max(1, line.qty) : 0,
+      })),
+    [write],
   );
 
   const setQty = useCallback(
-    (product: Product, qty: number) => {
-      setCart((prev) => {
-        const line = lineFor(product, prev[product.id]);
+    (product: Product, qty: number) =>
+      write(product, (line) => ({
+        ...line,
         // Clamped to stock on hand: the wizard is where overselling gets caught,
         // because by the time the order is issued the receipt has printed.
-        const next = Math.max(0, Math.min(product.quantity, qty));
-        return { ...prev, [product.id]: { ...line, qty: next } };
-      });
-    },
-    [lineFor],
+        qty: Math.max(0, Math.min(product.quantity, qty)),
+      })),
+    [write],
   );
 
   const adjustQty = useCallback(
-    (product: Product, delta: number) => {
-      setCart((prev) => {
-        const line = lineFor(product, prev[product.id]);
-        const next = Math.max(
-          0,
-          Math.min(product.quantity, line.qty + delta),
-        );
-        return { ...prev, [product.id]: { ...line, qty: next } };
-      });
-    },
-    [lineFor],
+    (product: Product, delta: number) =>
+      write(product, (line) => ({
+        ...line,
+        qty: Math.max(0, Math.min(product.quantity, line.qty + delta)),
+      })),
+    [write],
   );
 
   const setPrice = useCallback(
-    (product: Product, price: number) => {
-      setCart((prev) => {
-        const line = lineFor(product, prev[product.id]);
-        return {
-          ...prev,
-          [product.id]: {
-            ...line,
-            price: Number.isFinite(price) && price >= 0 ? price : 0,
-            // Typing a price is an implicit selection — otherwise the line shows
-            // a custom price and a zero total.
-            qty: line.qty === 0 ? 1 : line.qty,
-          },
-        };
-      });
-    },
-    [lineFor],
+    (product: Product, price: number) =>
+      write(product, (line) => ({
+        ...line,
+        price: Number.isFinite(price) && price >= 0 ? price : 0,
+        // Typing a price is an implicit selection — otherwise the line shows a
+        // custom price and a zero total.
+        qty: line.qty === 0 ? 1 : line.qty,
+      })),
+    [write],
   );
 
   /** Advance, refusing to leave a step whose requirement is unmet. */
@@ -156,7 +214,11 @@ export function useOrderWizard() {
 
     if (step === WizardStep.Items) {
       if (activeLines.length === 0) {
-        setError("Select at least one item with a quantity above zero.");
+        setError(
+          days.length > 1
+            ? "Add at least one item to one of the delivery days."
+            : "Select at least one item with a quantity above zero.",
+        );
         return false;
       }
       setError(undefined);
@@ -164,9 +226,15 @@ export function useOrderWizard() {
       return false;
     }
 
-    // Step 3 — the caller issues the order.
+    if (step === WizardStep.Dispatch) {
+      setError(undefined);
+      setStep(WizardStep.Balance);
+      return false;
+    }
+
+    // Step 4 — the caller issues the order.
     return true;
-  }, [step, customer, activeLines.length]);
+  }, [step, customer, activeLines.length, days.length]);
 
   const back = useCallback(() => {
     setError(undefined);
@@ -175,13 +243,18 @@ export function useOrderWizard() {
 
   const orderLines = useMemo<OrderLine[]>(
     () =>
-      activeLines.map(({ productId, name, qty, price }) => ({
-        productId,
-        name,
-        qty,
-        price,
-      })),
-    [activeLines],
+      // Emitted in day order, so the receipt reads in the order it will be
+      // delivered rather than the order the cashier happened to tap things.
+      buckets.flatMap((bucket) =>
+        bucket.lines.map(({ productId, name, qty, price, day }) => ({
+          productId,
+          name,
+          qty,
+          price,
+          ...(day === ONE_OFF ? {} : { day }),
+        })),
+      ),
+    [buckets],
   );
 
   return {
@@ -189,16 +262,25 @@ export function useOrderWizard() {
     customer,
     setCustomer,
     cart,
+    days,
+    activeDay,
+    setActiveDay: setRequestedDay,
+    /** True when the order is split across named days rather than a single sale. */
+    isSplitByDay: days[0] !== ONE_OFF,
+    buckets,
     courierId,
     setCourierId,
     paymentType,
     setPaymentType,
+    includePrevious,
+    setIncludePrevious,
     error,
     setError,
     activeLines,
     orderLines,
     total,
     itemCount,
+    lineFor,
     toggleProduct,
     setQty,
     adjustQty,

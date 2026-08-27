@@ -62,6 +62,17 @@ export function assertUniqueId(
  */
 export const READ_LATENCY_MS = 280;
 
+/**
+ * The same for writes.
+ *
+ * A save that returns in the same tick is not a faster app, it is an app with no
+ * loading state: the spinner never paints, the button never disables, and the
+ * only sign a click did anything is a row appearing a moment later when the
+ * invalidated list finishes refetching. That is precisely the "did that work?"
+ * gap. A real API will replace this with its own round trip.
+ */
+export const WRITE_LATENCY_MS = 320;
+
 export function delay(ms: number = READ_LATENCY_MS): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

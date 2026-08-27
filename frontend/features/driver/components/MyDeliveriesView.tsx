@@ -67,6 +67,7 @@ export function MyDeliveriesView() {
             order.customer.name,
             order.customer.phone,
             order.customer.address,
+            order.customer.postcode,
           ) &&
           (!status || order.paymentType === status),
       ),
@@ -80,7 +81,8 @@ export function MyDeliveriesView() {
     return {
       count: deliveries.length,
       units: deliveries.reduce((n, o) => n + totalUnits(o), 0),
-      toCollect: credit.reduce((n, o) => n + o.total, 0),
+      // The driver collects what the receipt says, carried balance included.
+      toCollect: credit.reduce((n, o) => n + o.grandTotal, 0),
       collectCount: credit.length,
     };
   }, [deliveries]);
@@ -131,7 +133,9 @@ export function MyDeliveriesView() {
         <Select
           aria-label="Filter by payment status"
           value={status}
-          onChange={(event) => setStatus(event.target.value as "" | PaymentType)}
+          onChange={(event) =>
+            setStatus(event.target.value as "" | PaymentType)
+          }
           placeholder="All Statuses"
           options={[
             { value: PaymentType.Paid, label: "Prepaid" },
@@ -156,14 +160,17 @@ export function MyDeliveriesView() {
           icon={LuPackageCheck}
         />
       ) : filtered.length === 0 ? (
-        <EmptyState message="No deliveries match this search" icon={LuSearchX} />
+        <EmptyState
+          message="No deliveries match this search"
+          icon={LuSearchX}
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((order) => {
             const collect = order.paymentType === PaymentType.OnCredit;
             return (
               <Card key={order.id} interactive padded={false}>
-                <div className="p-[18px] pb-3.5">
+                <div className="flex-1 p-[18px] pb-3.5">
                   <div className="mb-2.5 flex items-start justify-between gap-2">
                     <span className="text-foreground-strong font-mono text-xs font-bold">
                       {order.id}
@@ -196,12 +203,20 @@ export function MyDeliveriesView() {
                       aria-hidden
                     />
                     {/* Wraps, never truncates — this is the address they drive to. */}
-                    <span>{order.customer.address}</span>
+                    <span>
+                      {order.customer.address}
+                      {order.customer.postcode ? (
+                        <span className="text-foreground-body font-semibold">
+                          {" "}
+                          &middot; {order.customer.postcode}
+                        </span>
+                      ) : null}
+                    </span>
                   </p>
 
                   <div className="mt-3 flex items-baseline gap-2">
                     <span className="text-foreground-strong font-display text-xl font-bold">
-                      {formatCurrency(order.total)}
+                      {formatCurrency(order.grandTotal)}
                     </span>
                     <span className="text-foreground-subtle text-xs">
                       {totalUnits(order)} items
@@ -210,7 +225,7 @@ export function MyDeliveriesView() {
                   {collect ? (
                     <p className="text-danger-text mt-1 flex items-center gap-1.5 text-xs font-bold">
                       <LuClock className="h-3.5 w-3.5" aria-hidden />
-                      Collect {formatCurrency(order.total)} on delivery
+                      Collect {formatCurrency(order.grandTotal)} on delivery
                     </p>
                   ) : null}
                 </div>

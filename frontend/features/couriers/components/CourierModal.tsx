@@ -65,11 +65,16 @@ export function CourierModal({ onClose, courier }: CourierModalProps) {
       title={editing ? "Edit Courier" : "Register Courier"}
       footer={
         <div className="flex flex-1 justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="submit" form="courier-form" disabled={saving}>
-            {saving ? "Saving..." : "Save Courier"}
+          <Button
+            type="submit"
+            form="courier-form"
+            loading={saving}
+            loadingLabel="Saving..."
+          >
+            Save Courier
           </Button>
         </div>
       }

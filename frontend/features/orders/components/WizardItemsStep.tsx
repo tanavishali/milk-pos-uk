@@ -6,10 +6,11 @@ import type { Product } from "@app-types/index";
 import { Badge } from "@components/ui/data-display";
 import { SearchInput, Select } from "@components/ui/fields";
 import { EmptyState } from "@components/ui/states";
+import { WEEKDAY_SHORT } from "@enums/index";
 import { formatCurrency } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
 import { cn } from "@utils/libs/cn";
-import type { OrderWizardController } from "../hooks/useOrderWizard";
+import { ONE_OFF, type OrderWizardController } from "../hooks/useOrderWizard";
 
 interface WizardItemsStepProps {
   products: Product[];
@@ -48,16 +49,71 @@ export function WizardItemsStep({
             Step 2: Select Items &amp; Set Custom Prices
           </h4>
           <p className="text-micro text-foreground-subtle">
-            Tap the circle to select. Adjust selling price or quantity inline.
+            {wizard.isSplitByDay
+              ? "Build each delivery day separately. Switch days with the tabs."
+              : "Tap the circle to select. Adjust selling price or quantity inline."}
           </p>
         </div>
         <span
           aria-live="polite"
           className="text-accent-text bg-accent-soft border-accent-muted rounded-control-sm self-start border px-2.5 py-0.5 text-xs font-extrabold sm:self-auto"
         >
-          Total: {formatCurrency(wizard.total)}
+          Order total: {formatCurrency(wizard.total)}
         </span>
       </div>
+
+      {/* One tab per delivery day. Each carries its own running count and
+          subtotal, so the cashier can see at a glance which day is still empty
+          without switching to it. */}
+      {wizard.isSplitByDay ? (
+        <div
+          role="tablist"
+          aria-label="Delivery day"
+          className="border-border flex gap-1 overflow-x-auto border-b pb-2"
+        >
+          {wizard.buckets.map((bucket) => {
+            const on = bucket.day === wizard.activeDay;
+            return (
+              <button
+                key={bucket.day}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => wizard.setActiveDay(bucket.day)}
+                className={cn(
+                  "rounded-control shrink-0 border px-3 py-2 text-left transition-colors",
+                  on
+                    ? "border-accent bg-accent-soft"
+                    : "border-border hover:border-border-strong hover:bg-surface-muted",
+                )}
+              >
+                <span
+                  className={cn(
+                    "block text-xs font-bold",
+                    on ? "text-accent-text" : "text-foreground-body",
+                  )}
+                >
+                  {bucket.day === ONE_OFF
+                    ? "One-off"
+                    : WEEKDAY_SHORT[bucket.day]}
+                </span>
+                <span
+                  className={cn(
+                    "text-nano block",
+                    bucket.itemCount > 0
+                      ? "text-foreground-muted"
+                      : "text-foreground-subtle",
+                  )}
+                >
+                  {bucket.itemCount > 0
+                    ? `${bucket.itemCount} item${bucket.itemCount === 1 ? "" : "s"} · ${formatCurrency(bucket.total)}`
+                    : "Empty"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <SearchInput
@@ -76,6 +132,17 @@ export function WizardItemsStep({
         />
       </div>
 
+      {wizard.isSplitByDay ? (
+        <p className="text-foreground-subtle text-micro">
+          Adding to{" "}
+          <strong className="text-accent-text font-bold">
+            {wizard.activeDay === ONE_OFF
+              ? "this one-off order"
+              : WEEKDAY_SHORT[wizard.activeDay]}
+          </strong>
+        </p>
+      ) : null}
+
       {filtered.length === 0 ? (
         <EmptyState
           inset
@@ -85,7 +152,7 @@ export function WizardItemsStep({
       ) : (
         <div className="space-y-2">
           {filtered.map((product) => {
-            const line = wizard.cart[product.id];
+            const line = wizard.lineFor(product.id);
             const qty = line?.qty ?? 0;
             const price = line?.price ?? product.salePrice;
             const isSelected = qty > 0;

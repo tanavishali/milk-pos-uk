@@ -22,6 +22,7 @@ import {
 import { SearchInput, Select } from "@components/ui/fields";
 import {
   Badge,
+  DayChips,
   Pagination,
   Table,
   TableCell,
@@ -34,10 +35,11 @@ import {
   RegistrySkeleton,
   SkeletonStatCards,
 } from "@components/ui/states";
-import { PaymentType, ViewMode } from "@enums/index";
+import { PaymentType, ViewMode, WEEKDAYS, type Weekday } from "@enums/index";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { clearNewOrderRequest, setViewMode } from "@store/slices/uiSlice";
+import { DELIVERY_ROUNDS, roundLabel } from "@constants/index";
 import { formatCurrency } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
 import { useGetOrdersQuery } from "../api/ordersApi";
@@ -46,6 +48,16 @@ import { OrderWizard } from "./OrderWizard";
 
 const totalUnits = (order: Order) =>
   order.items.reduce((sum, line) => sum + line.qty, 0);
+
+/**
+ * The delivery days this order covers, in round order.
+ *
+ * Derived from the order's own lines rather than the customer's current round:
+ * moving someone to a different round must not change which days last week's
+ * order was for.
+ */
+const orderDays = (order: Order): Weekday[] =>
+  WEEKDAYS.filter((day) => order.items.some((line) => line.day === day));
 
 const paymentTone = (type: PaymentType) =>
   type === PaymentType.OnCredit ? "warning" : "success";
@@ -64,6 +76,7 @@ export function OrdersView() {
   const [receipt, setReceipt] = useState<Order | undefined>();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | PaymentType>("");
+  const [round, setRound] = useState("");
 
   // Address is searchable too: "which orders go to Gulberg?" is a dispatch
   // question a cashier actually asks, and the address is on the order already.
@@ -77,11 +90,19 @@ export function OrdersView() {
             order.customer.name,
             order.customer.phone,
             order.customer.address,
+            order.customer.postcode,
             order.courier,
+            roundLabel(order.customer.round),
           ) &&
-          (!status || order.paymentType === status),
+          (!status || order.paymentType === status) &&
+          // "none" is a real choice — it finds the walk-in orders that belong to
+          // no round at all.
+          (round === "" ||
+            (round === "none"
+              ? order.customer.round === ""
+              : order.customer.round === round)),
       ),
-    [orders, search, status],
+    [orders, search, status, round],
   );
 
   // The mobile tab bar's centre button navigates here and raises this flag.
@@ -103,15 +124,22 @@ export function OrdersView() {
   // the till", which a search for one customer should not change.
   const stats = useMemo(() => {
     const paid = orders.filter((o) => o.paymentType === PaymentType.Paid);
-    const credit = orders.filter((o) => o.paymentType === PaymentType.OnCredit);
-    const sum = (rows: Order[]) => rows.reduce((n, o) => n + o.total, 0);
+    // Outstanding means unpaid *and* not yet rolled into a later bill; counting
+    // settled rows would double the debt every time one is carried forward.
+    const credit = orders.filter(
+      (o) => o.paymentType === PaymentType.OnCredit && !o.settledBy,
+    );
+    // Revenue sums `total`, not `grandTotal`: a carried balance is money already
+    // counted on the bill it came from, not a second sale.
+    const goods = (rows: Order[]) => rows.reduce((n, o) => n + o.total, 0);
+    const due = (rows: Order[]) => rows.reduce((n, o) => n + o.grandTotal, 0);
     return {
       count: orders.length,
-      revenue: sum(orders),
+      revenue: goods(orders),
       paidCount: paid.length,
-      paidTotal: sum(paid),
+      paidTotal: goods(paid),
       creditCount: credit.length,
-      creditTotal: sum(credit),
+      creditTotal: due(credit),
     };
   }, [orders]);
 
@@ -180,7 +208,7 @@ export function OrdersView() {
           value={search}
           onChange={setSearch}
           clearable
-          placeholder="Search txn, customer, phone, address..."
+          placeholder="Search txn, customer, phone, address, round..."
           className="w-full sm:max-w-xs"
         />
         <Select
@@ -193,6 +221,17 @@ export function OrdersView() {
           options={[
             { value: PaymentType.Paid, label: "Paid" },
             { value: PaymentType.OnCredit, label: "On Credit" },
+          ]}
+          className="w-full sm:w-auto"
+        />
+        <Select
+          aria-label="Filter by delivery round"
+          value={round}
+          onChange={(event) => setRound(event.target.value)}
+          placeholder="Select Round"
+          options={[
+            ...DELIVERY_ROUNDS.map((r) => ({ value: r.id, label: r.label })),
+            { value: "none", label: "No round" },
           ]}
           className="w-full sm:w-auto"
         />
@@ -219,10 +258,10 @@ export function OrdersView() {
           icon={LuSearchX}
         />
       ) : viewMode === ViewMode.Grid ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((order) => (
             <Card key={order.id} interactive padded={false}>
-              <div className="p-[18px] pb-3.5">
+              <div className="flex-1 p-[18px] pb-3.5">
                 <div className="mb-2.5 flex items-start justify-between gap-2">
                   <span className="text-foreground-strong font-mono text-xs font-bold">
                     {order.id}
@@ -241,10 +280,18 @@ export function OrdersView() {
                 <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
                   Courier: {order.courier}
                 </p>
+                <p className="mt-1 flex items-center gap-2">
+                  {orderDays(order).length > 0 ? (
+                    <DayChips days={orderDays(order)} />
+                  ) : null}
+                  <span className="text-foreground-subtle text-micro truncate">
+                    {roundLabel(order.customer.round)}
+                  </span>
+                </p>
 
                 <div className="mt-3 flex items-baseline gap-2">
                   <span className="text-foreground-strong font-display text-xl font-bold">
-                    {formatCurrency(order.total)}
+                    {formatCurrency(order.grandTotal)}
                   </span>
                   <span className="text-foreground-subtle text-xs">
                     {totalUnits(order)} items
@@ -267,10 +314,11 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="550px"
+          minWidth="680px"
           headers={[
             { label: "Txn ID" },
             { label: "Customer" },
+            { label: "Days" },
             { label: "Courier" },
             { label: "Qty" },
             { label: "Status" },
@@ -291,6 +339,20 @@ export function OrdersView() {
                   {order.customer.phone}
                 </div>
               </TableCell>
+              <TableCell className="whitespace-nowrap">
+                {/* The days this order actually goes out on, taken from its own
+                    lines — not the customer's round, which may have changed
+                    since. Orders raised before per-day carts existed have no
+                    dated lines, so the chips are omitted rather than shown all
+                    empty: "No schedule" beside a real round name reads as a
+                    contradiction. */}
+                {orderDays(order).length > 0 ? (
+                  <DayChips days={orderDays(order)} />
+                ) : null}
+                <div className="text-nano text-foreground-subtle mt-0.5">
+                  {roundLabel(order.customer.round)}
+                </div>
+              </TableCell>
               <TableCell className="text-foreground-body whitespace-nowrap">
                 {order.courier}
               </TableCell>
@@ -303,7 +365,12 @@ export function OrdersView() {
                 </Badge>
               </TableCell>
               <TableCell className="text-foreground-strong font-extrabold whitespace-nowrap">
-                {formatCurrency(order.total)}
+                {formatCurrency(order.grandTotal)}
+                {order.previousBalance > 0 ? (
+                  <span className="text-nano text-warning-text block font-semibold">
+                    incl. {formatCurrency(order.previousBalance)} carried
+                  </span>
+                ) : null}
               </TableCell>
               <TableCell align="right" className="whitespace-nowrap">
                 <button

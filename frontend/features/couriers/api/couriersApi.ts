@@ -3,6 +3,7 @@ import { baseApi } from "@services/api/baseApi";
 import { tags } from "@services/api/tags";
 import {
   READ_FAILURE_MESSAGE,
+  WRITE_LATENCY_MS,
   delay,
   mockDb,
   shouldFailRead,
@@ -20,17 +21,28 @@ export const couriersApi = baseApi.injectEndpoints({
     }),
 
     createCourier: build.mutation<Courier, CourierDraft>({
-      queryFn: (draft) => ({ data: mockDb.couriers.create(draft) }),
+      queryFn: async (draft) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.couriers.create(draft) };
+      },
       invalidatesTags: [tags.Courier, tags.DashboardMetrics],
     }),
 
-    updateCourier: build.mutation<Courier, { id: string; draft: CourierDraft }>({
-      queryFn: ({ id, draft }) => ({ data: mockDb.couriers.update(id, draft) }),
-      invalidatesTags: [tags.Courier],
-    }),
+    updateCourier: build.mutation<Courier, { id: string; draft: CourierDraft }>(
+      {
+        queryFn: async ({ id, draft }) => {
+          await delay(WRITE_LATENCY_MS);
+          return { data: mockDb.couriers.update(id, draft) };
+        },
+        invalidatesTags: [tags.Courier],
+      },
+    ),
 
     deleteCourier: build.mutation<string, string>({
-      queryFn: (id) => ({ data: mockDb.couriers.remove(id) }),
+      queryFn: async (id) => {
+        await delay(WRITE_LATENCY_MS);
+        return { data: mockDb.couriers.remove(id) };
+      },
       invalidatesTags: [tags.Courier, tags.DashboardMetrics],
     }),
   }),

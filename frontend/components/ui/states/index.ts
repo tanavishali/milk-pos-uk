@@ -1,4 +1,5 @@
 export { EmptyState } from "./EmptyState";
+export { Loader, LoaderBar, LoaderOverlay } from "./Loader";
 export { ErrorState } from "./ErrorState";
 export {
   Skeleton,

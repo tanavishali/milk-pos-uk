@@ -84,11 +84,16 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
       title={product ? "Edit Master Item" : "Add Master Item"}
       footer={
         <div className="flex flex-1 justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="submit" form="product-form" disabled={saving}>
-            {saving ? "Saving..." : "Save Item"}
+          <Button
+            type="submit"
+            form="product-form"
+            loading={saving}
+            loadingLabel="Saving..."
+          >
+            Save Item
           </Button>
         </div>
       }

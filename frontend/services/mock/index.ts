@@ -20,9 +20,5 @@ export const mockDb = {
 
 export type { MockDatabase } from "./seed";
 export type { Category } from "./types";
-export { delay, READ_LATENCY_MS } from "./utils";
-export {
-  READ_FAILURE_MESSAGE,
-  setFailReads,
-  shouldFailRead,
-} from "./faults";
+export { delay, READ_LATENCY_MS, WRITE_LATENCY_MS } from "./utils";
+export { READ_FAILURE_MESSAGE, setFailReads, shouldFailRead } from "./faults";

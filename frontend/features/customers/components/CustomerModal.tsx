@@ -2,15 +2,30 @@
 
 import { useState } from "react";
 import type { Customer, CustomerDraft } from "@app-types/index";
+import type { Weekday } from "@enums/index";
+import { DELIVERY_ROUNDS, roundById } from "@constants/index";
 import { Button } from "@components/ui/buttons";
-import { FormField, inputClass } from "@components/ui/fields";
+import {
+  DayPicker,
+  FormField,
+  Select,
+  inputClass,
+} from "@components/ui/fields";
 import { Modal } from "@components/ui/modals";
 import {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
 } from "../api/customersApi";
 
-const EMPTY: CustomerDraft = { name: "", phone: "", idcard: "", address: "" };
+const EMPTY: CustomerDraft = {
+  name: "",
+  phone: "",
+  round: "",
+  deliveryDays: [],
+  email: "",
+  address: "",
+  postcode: "",
+};
 
 interface CustomerModalProps {
   onClose: () => void;
@@ -25,8 +40,11 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
       ? {
           name: customer.name,
           phone: customer.phone,
-          idcard: customer.idcard,
+          round: customer.round,
+          deliveryDays: customer.deliveryDays,
+          email: customer.email,
           address: customer.address,
+          postcode: customer.postcode,
         }
       : EMPTY,
   );
@@ -35,8 +53,25 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
 
   const saving = createState.isLoading || updateState.isLoading;
 
-  const set = <K extends keyof CustomerDraft>(key: K, value: string) =>
-    setDraft((prev) => ({ ...prev, [key]: value }));
+  const set = (
+    key: "name" | "phone" | "email" | "address" | "postcode",
+    value: string,
+  ) => setDraft((prev) => ({ ...prev, [key]: value }));
+
+  const setDays = (deliveryDays: Weekday[]) =>
+    setDraft((prev) => ({ ...prev, deliveryDays }));
+
+  /**
+   * Choosing a round fills the day toggles from it, so the two cannot silently
+   * disagree. The toggles stay editable afterwards — a one-off variation should
+   * not require inventing a new round.
+   */
+  const setRound = (round: string) =>
+    setDraft((prev) => ({
+      ...prev,
+      round,
+      deliveryDays: roundById(round)?.days ?? prev.deliveryDays,
+    }));
 
   const submit = async () => {
     if (customer) {
@@ -53,11 +88,16 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
       title={customer ? "Edit Customer" : "Add New Customer"}
       footer={
         <div className="flex flex-1 justify-end gap-2">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button type="submit" form="customer-form" disabled={saving}>
-            {saving ? "Saving..." : "Save Customer"}
+          <Button
+            type="submit"
+            form="customer-form"
+            loading={saving}
+            loadingLabel="Saving..."
+          >
+            Save Customer
           </Button>
         </div>
       }
@@ -91,12 +131,33 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
           />
         </FormField>
 
-        <FormField label="National ID Card" htmlFor="cust-idcard" required>
+        {/* Not required: a walk-in customer is on no round. */}
+        <FormField label="Delivery Round" htmlFor="cust-round">
+          <Select
+            id="cust-round"
+            value={draft.round}
+            onChange={(e) => setRound(e.target.value)}
+            placeholder="Select Round"
+            options={DELIVERY_ROUNDS.map((r) => ({
+              value: r.id,
+              label: r.label,
+            }))}
+          />
+        </FormField>
+
+        <FormField label="Delivery Days" htmlFor="cust-days">
+          <DayPicker value={draft.deliveryDays} onChange={setDays} />
+        </FormField>
+
+        <FormField label="Email Address" htmlFor="cust-email" required>
           <input
-            id="cust-idcard"
+            id="cust-email"
+            type="email"
             required
-            value={draft.idcard}
-            onChange={(e) => set("idcard", e.target.value)}
+            autoComplete="email"
+            placeholder="name@example.com"
+            value={draft.email}
+            onChange={(e) => set("email", e.target.value)}
             className={inputClass()}
           />
         </FormField>
@@ -108,6 +169,18 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
             rows={2}
             value={draft.address}
             onChange={(e) => set("address", e.target.value)}
+            className={inputClass()}
+          />
+        </FormField>
+
+        <FormField label="Post Code" htmlFor="cust-postcode" required>
+          <input
+            id="cust-postcode"
+            required
+            autoComplete="postal-code"
+            placeholder="54000"
+            value={draft.postcode}
+            onChange={(e) => set("postcode", e.target.value)}
             className={inputClass()}
           />
         </FormField>

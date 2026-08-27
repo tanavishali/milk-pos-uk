@@ -2,10 +2,10 @@
 
 import type { Courier } from "@app-types/index";
 import { FormField, Select } from "@components/ui/fields";
-import { PaymentType } from "@enums/index";
+import { PaymentType, WEEKDAY_SHORT } from "@enums/index";
 import { formatCurrency } from "@utils/helper/format";
 import { cn } from "@utils/libs/cn";
-import type { OrderWizardController } from "../hooks/useOrderWizard";
+import { ONE_OFF, type OrderWizardController } from "../hooks/useOrderWizard";
 
 const PAYMENT_OPTIONS = [
   {
@@ -82,6 +82,48 @@ export function WizardDispatchStep({
         </div>
       </fieldset>
 
+      {/* The per-day breakdown, so what prints is visible before it prints.
+          Empty days are omitted — a day with nothing on it is not a delivery. */}
+      {wizard.isSplitByDay ? (
+        <div className="border-border rounded-control divide-border-subtle divide-y border">
+          {wizard.buckets
+            .filter((bucket) => bucket.lines.length > 0)
+            .map((bucket) => (
+              <div key={bucket.day} className="p-2.5">
+                <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                  <p className="text-foreground-strong text-xs font-bold">
+                    {bucket.day === ONE_OFF
+                      ? "One-off"
+                      : WEEKDAY_SHORT[bucket.day]}
+                  </p>
+                  <p className="text-foreground-muted text-micro">
+                    {bucket.itemCount} item{bucket.itemCount === 1 ? "" : "s"}
+                    {" · "}
+                    <strong className="text-foreground-body font-bold">
+                      {formatCurrency(bucket.total)}
+                    </strong>
+                  </p>
+                </div>
+                <ul className="space-y-0.5">
+                  {bucket.lines.map((line) => (
+                    <li
+                      key={line.productId}
+                      className="text-foreground-muted flex justify-between gap-2 text-micro"
+                    >
+                      <span className="truncate">
+                        {line.qty} &times; {line.name}
+                      </span>
+                      <span className="shrink-0">
+                        {formatCurrency(line.qty * line.price)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </div>
+      ) : null}
+
       <dl className="bg-surface-muted border-border rounded-control space-y-1 border p-2.5 text-xs">
         <div className="flex justify-between gap-2">
           <dt className="text-foreground-body">Customer:</dt>
@@ -93,6 +135,15 @@ export function WizardDispatchStep({
           <dt className="text-foreground-body">Item Count:</dt>
           <dd className="text-foreground font-bold">{wizard.itemCount}</dd>
         </div>
+        {wizard.isSplitByDay ? (
+          <div className="flex justify-between gap-2">
+            <dt className="text-foreground-body">Delivery Days:</dt>
+            <dd className="text-foreground font-bold">
+              {wizard.buckets.filter((b) => b.lines.length > 0).length} of{" "}
+              {wizard.days.length}
+            </dd>
+          </div>
+        ) : null}
         <div className="border-border flex justify-between gap-2 border-t pt-1">
           <dt className="text-foreground-body">Grand Total:</dt>
           <dd className="text-accent-text font-extrabold">

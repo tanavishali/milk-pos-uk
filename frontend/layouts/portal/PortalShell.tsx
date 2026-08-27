@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { LoaderBar } from "@components/ui/states";
+import { useIsWriting } from "@hooks/index";
 import { CategoryModal } from "@features/products/index";
 import { BottomNav } from "./BottomNav";
 import { Chrome } from "./Chrome";
@@ -16,9 +18,11 @@ import { Sidebar } from "./Sidebar";
  */
 export function PortalShell({ children }: { children: ReactNode }) {
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const writing = useIsWriting();
 
   return (
-    <div className="bg-background flex h-screen flex-col overflow-hidden">
+    <div className="bg-background relative flex h-screen flex-col overflow-hidden">
+      <LoaderBar active={writing} />
       <Chrome />
 
       <div className="relative flex flex-1 overflow-hidden">
