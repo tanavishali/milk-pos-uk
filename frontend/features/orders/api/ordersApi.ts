@@ -17,17 +17,26 @@ export const ordersApi = baseApi.injectEndpoints({
         if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
         return { data: mockDb.orders.list() };
       },
-      providesTags: [tags.Order],
+      providesTags: [tags.Order, tags.Payment],
     }),
 
-    /** What a customer still owes from earlier bills, and on which ones. */
-    getOutstanding: build.query<{ orders: Order[]; total: number }, string>({
+    /**
+     * What a customer still owes, and on which bills.
+     *
+     * Tagged with `Payment` as well as `Order`: recording a collection changes
+     * this answer without touching a single order, so a cache keyed only on
+     * orders would keep showing a balance that has just been paid.
+     */
+    getOutstanding: build.query<
+      { orders: Order[]; total: number; paid: number },
+      string
+    >({
       queryFn: async (customerId) => {
         await delay();
         if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
         return { data: mockDb.orders.outstanding(customerId) };
       },
-      providesTags: [tags.Order],
+      providesTags: [tags.Order, tags.Payment],
     }),
 
     createOrder: build.mutation<Order, OrderDraft>({

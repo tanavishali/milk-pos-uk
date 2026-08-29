@@ -11,6 +11,7 @@ import {
   useGetCategoriesQuery,
   useGetProductsQuery,
 } from "@features/products/api/productsApi";
+import { useRecordPaymentMutation } from "@features/payments/index";
 import { reportError } from "@utils/libs/reportError";
 import { useCreateOrderMutation } from "../api/ordersApi";
 import { useOrderWizard } from "../hooks/useOrderWizard";
@@ -22,8 +23,8 @@ import { WizardStepper } from "./WizardStepper";
 
 interface OrderWizardProps {
   onClose: () => void;
-  /** Called with the issued order so the caller can open its receipt. */
-  onIssued: (order: Order) => void;
+  /** Called with the issued order's id so the caller can open its receipt. */
+  onIssued: (orderId: string) => void;
 }
 
 /**
@@ -58,6 +59,38 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
     void couriersQuery.refetch();
   };
   const [createOrder, { isLoading: issuing }] = useCreateOrderMutation();
+  const [recordPayment, { isLoading: paying }] = useRecordPaymentMutation();
+
+  /**
+   * Turn step 4's two answers into ledger entries.
+   *
+   * The figures come from the issued order, not from the step-4 query: the
+   * server computed `previousBalance` when it raised the bill, and that is the
+   * number the operator was looking at.
+   *
+   * Marked Paid while an older balance stays open names this bill, so the money
+   * lands where it was said to. Anything else is left unnamed and clears the
+   * oldest debt first — which is what "he settled last week's" means. Nothing is
+   * recorded when nothing was taken: an unpaid bill is the absence of a payment,
+   * not a payment of zero.
+   */
+  const settle = async (order: Order) => {
+    const clearing = order.previousBalance > 0 && wizard.clearPrevious;
+    const amount =
+      (wizard.billPaid ? order.total : 0) +
+      (clearing ? order.previousBalance : 0);
+    if (amount <= 0) return;
+
+    await recordPayment({
+      customerId: order.customerId,
+      orderId: order.id,
+      ...(wizard.billPaid && !clearing && order.previousBalance > 0
+        ? { appliesTo: order.id }
+        : {}),
+      amount,
+      receivedBy: order.courier === "Unassigned" ? "Admin" : order.courier,
+    }).unwrap();
+  };
 
   const issue = async () => {
     if (!wizard.customer) return;
@@ -65,13 +98,15 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
       const order = await createOrder({
         customerId: wizard.customer.id,
         courierId: wizard.courierId,
-        paymentType: wizard.paymentType,
-        includePrevious: wizard.includePrevious,
         items: wizard.orderLines,
       }).unwrap();
 
+      await settle(order);
+
       onClose();
-      onIssued(order);
+      // Re-read so the receipt shows the payment that was just recorded rather
+      // than the bill as it was a moment before it.
+      onIssued(order.id);
     } catch (error) {
       reportError(error, "createOrder");
       wizard.setError("Could not issue this order. Please try again.");
@@ -98,23 +133,26 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
               variant="secondary"
               block
               onClick={wizard.back}
-              disabled={issuing}
+              disabled={issuing || paying}
             >
               Previous
             </Button>
           ) : null}
-          <Button variant="ghost" block onClick={onClose} disabled={issuing}>
+          <Button
+            variant="ghost"
+            block
+            onClick={onClose}
+            disabled={issuing || paying}
+          >
             Cancel
           </Button>
           <Button
             block
-            loading={issuing}
-            loadingLabel="Issuing..."
+            loading={issuing || paying}
+            loadingLabel="Generating..."
             onClick={onNext}
           >
-            {wizard.step === WizardStep.Balance
-              ? "Confirm & Issue Receipt"
-              : "Continue"}
+            {wizard.step === WizardStep.Balance ? "Generate Bill" : "Continue"}
           </Button>
         </div>
       }
@@ -123,7 +161,9 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
         {/* Covers the cart while the order is being issued: the lines have
             already been priced, so a quantity changed now would print a receipt
             that does not match what was charged. */}
-        {issuing ? <LoaderOverlay label="Issuing receipt..." /> : null}
+        {issuing || paying ? (
+          <LoaderOverlay label="Generating bill..." />
+        ) : null}
 
         {loadFailed ? (
           <ErrorState

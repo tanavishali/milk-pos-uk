@@ -2,6 +2,7 @@ import { authMock } from "./auth.mock";
 import { couriersMock } from "./couriers.mock";
 import { customersMock } from "./customers.mock";
 import { ordersMock } from "./orders.mock";
+import { paymentsMock } from "./payments.mock";
 import { categoriesMock, productsMock } from "./products.mock";
 
 /**
@@ -16,9 +17,10 @@ export const mockDb = {
   categories: categoriesMock,
   couriers: couriersMock,
   orders: ordersMock,
+  payments: paymentsMock,
 };
 
 export type { MockDatabase } from "./seed";
-export type { Category } from "./types";
+export type { Category, StoredOrder } from "./types";
 export { delay, READ_LATENCY_MS, WRITE_LATENCY_MS } from "./utils";
 export { READ_FAILURE_MESSAGE, setFailReads, shouldFailRead } from "./faults";

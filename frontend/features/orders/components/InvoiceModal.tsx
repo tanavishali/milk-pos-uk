@@ -3,6 +3,7 @@
 import {
   LuCheck,
   LuDownload,
+  LuHandCoins,
   LuPrinter,
   LuTriangleAlert,
 } from "react-icons/lu";
@@ -10,7 +11,7 @@ import { useState } from "react";
 import type { Order } from "@app-types/index";
 import { Modal } from "@components/ui/modals";
 import { Loader } from "@components/ui/states";
-import { PaymentType, WEEKDAYS, WEEKDAY_SHORT } from "@enums/index";
+import { PaymentStatus, WEEKDAYS, WEEKDAY_SHORT } from "@enums/index";
 import { APP_NAME, DEFAULT_POS_SETTINGS } from "@constants/index";
 import { formatCurrency } from "@utils/helper/format";
 import { cn } from "@utils/libs/cn";
@@ -20,6 +21,8 @@ import { buildReceiptPdf, receiptFilename } from "../utils/receiptPdf";
 
 interface InvoiceModalProps {
   order: Order;
+  /** Opens the collection dialog — the driver's next action at the door. */
+  onCollect?: () => void;
   onClose: () => void;
 }
 
@@ -59,7 +62,7 @@ const saveStates: Record<
   },
 };
 
-export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
+export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const state = saveStates[saveState];
 
@@ -113,9 +116,23 @@ export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
       printable
       headerActions={
         <>
+          {onCollect ? (
+            <button
+              type="button"
+              onClick={onCollect}
+              aria-label="Collect payment"
+              title="Collect payment"
+              className="rounded-control-sm press-scale border-border text-foreground-body hover:bg-surface-muted flex items-center gap-1 border px-3 py-1.5 text-xs font-bold transition-colors"
+            >
+              <LuHandCoins className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden sm:inline">Collect</span>
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={save}
+            aria-label={state.label}
+            title={state.label}
             disabled={saveState === "working"}
             aria-busy={saveState === "working" || undefined}
             className={cn(
@@ -132,15 +149,17 @@ export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             ) : (
               <LuDownload className="h-3.5 w-3.5" aria-hidden />
             )}
-            {state.label}
+            <span className="hidden sm:inline">{state.label}</span>
           </button>
           <button
             type="button"
             onClick={() => window.print()}
+            aria-label="Print"
+            title="Print"
             className="bg-accent text-foreground-on-accent rounded-control-sm press-scale flex items-center gap-1 px-3 py-1.5 text-xs font-bold"
           >
             <LuPrinter className="h-3.5 w-3.5" aria-hidden />
-            Print
+            <span className="hidden sm:inline">Print</span>
           </button>
         </>
       }
@@ -193,12 +212,12 @@ export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
             <dd
               className={cn(
                 "font-bold",
-                order.paymentType === PaymentType.OnCredit
-                  ? "text-warning-text"
-                  : "text-success-text",
+                order.status === PaymentStatus.Paid
+                  ? "text-success-text"
+                  : "text-warning-text",
               )}
             >
-              {order.paymentType}
+              {order.status}
             </dd>
           </div>
         </dl>
@@ -268,11 +287,13 @@ export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
           ))}
         </table>
 
-        {/* The two bills are shown separately before the total. A single figure
-            would hide that part of it is an old debt being collected. */}
+        {/* Five lines, the shape a round docket has always had: what was
+            delivered, what was already owed, what that comes to, what the
+            customer handed over, and what is still on the account. A single
+            "total" would hide which part of it is an old debt. */}
         <div className="space-y-0.5 pt-0.5">
           <div className="flex items-center justify-between">
-            <span>This bill:</span>
+            <span>This delivery:</span>
             <span>{formatCurrency(order.total)}</span>
           </div>
           <div className="flex items-center justify-between">
@@ -286,6 +307,24 @@ export function InvoiceModal({ order, onClose }: InvoiceModalProps) {
           <div className="border-border flex items-center justify-between border-t border-dashed pt-1 text-xs font-black">
             <span>TOTAL DUE:</span>
             <span>{formatCurrency(order.grandTotal)}</span>
+          </div>
+          <div className="flex items-center justify-between pt-0.5">
+            <span>Received:</span>
+            <span>
+              {order.receivedAtDelivery > 0
+                ? formatCurrency(order.receivedAtDelivery)
+                : "NIL"}
+            </span>
+          </div>
+          {/* The account balance as it stands now, not as it stood when this
+              printed — a reprint should tell the truth about today. */}
+          <div className="flex items-center justify-between font-bold">
+            <span>Balance now:</span>
+            <span>
+              {order.customerBalance > 0
+                ? formatCurrency(order.customerBalance)
+                : "NIL"}
+            </span>
           </div>
         </div>
 

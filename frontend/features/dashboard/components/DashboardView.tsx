@@ -1,6 +1,11 @@
 "use client";
 
-import { LuDollarSign, LuShoppingBag, LuTruck, LuUsers } from "react-icons/lu";
+import {
+  LuBanknote,
+  LuDollarSign,
+  LuTriangleAlert,
+  LuUsers,
+} from "react-icons/lu";
 import { Card, StatCard } from "@components/ui/cards";
 import {
   EmptyState,
@@ -80,11 +85,11 @@ export function DashboardView() {
           delta="+8.5%"
         />
         <StatCard
-          label="Total Orders"
-          value={metrics?.totalOrders ?? 0}
-          icon={LuShoppingBag}
+          label="Collected"
+          value={formatCurrency(metrics?.collected ?? 0)}
+          icon={LuBanknote}
           tone="success"
-          delta="+12%"
+          caption={`${metrics?.totalOrders ?? 0} bills raised`}
         />
         <StatCard
           label="Customers"
@@ -93,12 +98,14 @@ export function DashboardView() {
           tone="accent"
           delta="+4.2%"
         />
+        {/* Billed less collected: on a credit round this is the number that
+            matters, and the old model could not produce it. */}
         <StatCard
-          label="Couriers"
-          value={metrics?.totalCouriers ?? 0}
-          icon={LuTruck}
-          tone="danger"
-          delta="-1.5%"
+          label="Outstanding"
+          value={formatCurrency(metrics?.outstanding ?? 0)}
+          icon={LuTriangleAlert}
+          tone={(metrics?.outstanding ?? 0) > 0 ? "danger" : "success"}
+          caption="Out with customers"
         />
       </div>
 
@@ -121,7 +128,7 @@ export function DashboardView() {
                       {order.customer.name}
                     </p>
                     <p className="text-micro text-foreground-subtle">
-                      {order.id} &bull; {order.paymentType}
+                      {order.id} &bull; {order.status}
                     </p>
                   </div>
                   <span className="text-foreground-strong shrink-0 font-extrabold">

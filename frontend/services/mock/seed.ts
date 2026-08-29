@@ -1,10 +1,11 @@
-import type { Courier, Customer, Order, Product } from "@app-types/index";
+import type { Courier, Customer, Payment, Product } from "@app-types/index";
 import { seedCategories } from "./seed.categories";
 import { seedCouriers } from "./seed.couriers";
 import { seedCustomers } from "./seed.customers";
 import { seedOrders } from "./seed.orders";
+import { seedPayments } from "./seed.payments";
 import { seedProducts } from "./seed.products";
-import type { Category } from "./types";
+import type { Category, StoredOrder } from "./types";
 
 /**
  * The one mutable store every mock domain reads and writes. In-memory: it
@@ -20,7 +21,9 @@ export interface MockDatabase {
   customers: Customer[];
   products: Product[];
   couriers: Courier[];
-  orders: Order[];
+  orders: StoredOrder[];
+  /** Money in, newest-first like `orders`. */
+  payments: Payment[];
 }
 
 function buildDatabase(): MockDatabase {
@@ -30,6 +33,7 @@ function buildDatabase(): MockDatabase {
     products: [...seedProducts],
     couriers: [...seedCouriers],
     orders: [...seedOrders].reverse(),
+    payments: [...seedPayments].reverse(),
   };
 }
 
@@ -67,4 +71,5 @@ export function resetDatabase(): void {
   db.products = fresh.products;
   db.couriers = fresh.couriers;
   db.orders = fresh.orders;
+  db.payments = fresh.payments;
 }

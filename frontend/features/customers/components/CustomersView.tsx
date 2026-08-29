@@ -44,6 +44,7 @@ import {
   SkeletonStatCards,
 } from "@components/ui/states";
 import { ViewMode } from "@enums/index";
+import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { setViewMode } from "@store/slices/uiSlice";
@@ -64,6 +65,12 @@ import { CustomerModal } from "./CustomerModal";
 export function CustomersView() {
   const dispatch = useAppDispatch();
   const viewMode = useAppSelector((state) => state.ui.viewModes.customers);
+  // A seven-column table cannot be read on a 360px screen, so below `sm` the
+  // registry shows cards whatever the stored preference says. The preference is
+  // left untouched — it is what the operator chose for their desktop, and going
+  // back there should not require setting it again.
+  const compact = useIsCompact();
+  const mode = compact ? ViewMode.Grid : viewMode;
   const {
     data: customers = [],
     isLoading,
@@ -106,6 +113,7 @@ export function CustomersView() {
             c.name,
             c.phone,
             c.email,
+            c.area,
             c.address,
             c.postcode,
             roundLabel(c.round),
@@ -195,6 +203,7 @@ export function CustomersView() {
         actions={
           <>
             <ViewToggle
+              className="hidden sm:flex"
               value={viewMode}
               onChange={(mode) =>
                 dispatch(setViewMode({ key: "customers", mode }))
@@ -210,7 +219,7 @@ export function CustomersView() {
           value={search}
           onChange={setSearch}
           placeholder="Search customers..."
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-56 lg:w-72"
         />
         <Select
           aria-label="Filter by delivery round"
@@ -232,13 +241,13 @@ export function CustomersView() {
         />
       ) : isLoading ? (
         <RegistrySkeleton
-          viewMode={viewMode}
+          viewMode={mode}
           label="Loading customers"
-          columns={6}
+          columns={7}
         />
       ) : filtered.length === 0 ? (
         <EmptyState message="No customers found" icon={LuUserX} />
-      ) : viewMode === ViewMode.Grid ? (
+      ) : mode === ViewMode.Grid ? (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((customer) => (
             <Card key={customer.id} interactive padded={false}>
@@ -285,6 +294,12 @@ export function CustomersView() {
                     aria-hidden
                   />
                   <span>
+                    {/* Area first and in the body tone: it is what a dispatcher
+                        scans a card for. */}
+                    <span className="text-foreground-body font-semibold">
+                      {customer.area}
+                    </span>
+                    <br />
                     {customer.address}
                     <span className="text-foreground-subtle">
                       {" "}
@@ -326,6 +341,7 @@ export function CustomersView() {
             { label: "Phone" },
             { label: "Days" },
             { label: "Email" },
+            { label: "Area" },
             { label: "Address" },
             { label: "Actions", align: "right" },
           ]}
@@ -343,6 +359,9 @@ export function CustomersView() {
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <span className="truncate">{customer.email}</span>
+              </TableCell>
+              <TableCell className="max-w-[150px] truncate font-semibold">
+                {customer.area}
               </TableCell>
               <TableCell className="max-w-[200px]">
                 <div className="truncate">{customer.address}</div>
@@ -413,6 +432,7 @@ export function CustomersView() {
               value: <DayChips days={viewing.deliveryDays} />,
             },
             { label: "Email", value: viewing.email, wide: true },
+            { label: "Area", value: viewing.area, wide: true },
             { label: "Address", value: viewing.address, wide: true },
             { label: "Post Code", value: viewing.postcode },
           ]}

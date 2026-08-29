@@ -50,10 +50,19 @@ export enum UserRole {
   Courier = "courier",
 }
 
-/** How a completed order was settled. */
-export enum PaymentType {
+/**
+ * How much of a bill has been settled.
+ *
+ * Derived from the payment ledger, never chosen by the cashier: on a delivery
+ * round the money arrives after the bill is raised, so a state picked at issue
+ * time could only ever be a guess.
+ */
+export enum PaymentStatus {
+  /** Nothing received against it yet — clears on a later delivery. */
+  Unpaid = "Unpaid",
+  /** Some money in, not all of it. The rest rolls forward. */
+  Partial = "Part Paid",
   Paid = "Paid",
-  OnCredit = "On Credit",
 }
 
 /** Grid/list switch shared by every registry view. */
@@ -67,6 +76,6 @@ export enum WizardStep {
   Customer = 1,
   Items = 2,
   Dispatch = 3,
-  /** Review the balance carried in from unpaid earlier bills. */
+  /** Review what will be due at the door: this delivery plus any old balance. */
   Balance = 4,
 }

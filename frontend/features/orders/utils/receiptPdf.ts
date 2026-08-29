@@ -1,7 +1,7 @@
 import type { Order } from "@app-types/index";
 import { APP_NAME, DEFAULT_POS_SETTINGS, roundLabel } from "@constants/index";
 import {
-  PaymentType,
+  PaymentStatus,
   WEEKDAYS,
   WEEKDAY_SHORT,
   type Weekday,
@@ -78,7 +78,7 @@ function measure(order: Order): number {
     }
     if (grouped) h += 16;
   }
-  h += 14 + 3 * 17 + 10; // totals block
+  h += 14 + 5 * 17 + 12; // totals block, including received + balance
   h += 34; // footer
   return Math.max(h, 340);
 }
@@ -132,7 +132,7 @@ export function buildReceiptPdf(order: Order): string {
     ],
     ["Round", roundLabel(order.customer.round)],
     ["Courier", order.courier],
-    ["Status", order.paymentType],
+    ["Status", order.status],
   ];
   for (const [label, value] of meta) {
     page.text(label.toUpperCase(), MARGIN, y, { size: 6.5, color: MUTED });
@@ -140,9 +140,7 @@ export function buildReceiptPdf(order: Order): string {
       size: 8.5,
       font: label === "Status" ? "monoBold" : "mono",
       color:
-        label === "Status" && order.paymentType === PaymentType.OnCredit
-          ? WARN
-          : INK,
+        label === "Status" && order.status !== PaymentStatus.Paid ? WARN : INK,
     });
     y += 15;
   }
@@ -207,7 +205,7 @@ export function buildReceiptPdf(order: Order): string {
   // ── Money ───────────────────────────────────────────────────────────
   page.line(MARGIN, y, RIGHT, FAINT);
   y += 16;
-  page.text("This bill", MARGIN, y, { size: 8.5, color: MUTED });
+  page.text("This delivery", MARGIN, y, { size: 8.5, color: MUTED });
   page.textRight(formatCurrency(order.total), COL_TOTAL, y, { size: 9 });
   y += 15;
   page.text("Previous balance", MARGIN, y, { size: 8.5, color: MUTED });
@@ -231,7 +229,32 @@ export function buildReceiptPdf(order: Order): string {
     font: "monoBold",
     color: WHITE,
   });
-  y += 26 + 24;
+  y += 26 + 16;
+
+  // What was handed over at this door, and what is left on the account. The
+  // customer keeps this slip, so the carry-forward has to be on it in writing.
+  page.text("Received", MARGIN, y, { size: 8.5, color: MUTED });
+  page.textRight(
+    order.receivedAtDelivery > 0
+      ? formatCurrency(order.receivedAtDelivery)
+      : "NIL",
+    COL_TOTAL,
+    y,
+    { size: 9, color: order.receivedAtDelivery > 0 ? ACCENT : MUTED },
+  );
+  y += 15;
+  page.text("Balance now", MARGIN, y, { size: 8.5, font: "bold", color: INK });
+  page.textRight(
+    order.customerBalance > 0 ? formatCurrency(order.customerBalance) : "NIL",
+    COL_TOTAL,
+    y,
+    {
+      size: 9,
+      font: "monoBold",
+      color: order.customerBalance > 0 ? WARN : MUTED,
+    },
+  );
+  y += 24;
 
   page.text(DEFAULT_POS_SETTINGS.receiptNote, MARGIN, y, {
     size: 7.5,

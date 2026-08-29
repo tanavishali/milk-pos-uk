@@ -39,6 +39,7 @@ import {
   SkeletonStatCards,
 } from "@components/ui/states";
 import { ViewMode } from "@enums/index";
+import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { setViewMode } from "@store/slices/uiSlice";
@@ -57,6 +58,12 @@ import { ProductModal } from "./ProductModal";
 export function ProductsView() {
   const dispatch = useAppDispatch();
   const viewMode = useAppSelector((state) => state.ui.viewModes.products);
+  // A seven-column table cannot be read on a 360px screen, so below `sm` the
+  // registry shows cards whatever the stored preference says. The preference is
+  // left untouched — it is what the operator chose for their desktop, and going
+  // back there should not require setting it again.
+  const compact = useIsCompact();
+  const mode = compact ? ViewMode.Grid : viewMode;
   const {
     data: products = [],
     isLoading,
@@ -173,6 +180,7 @@ export function ProductsView() {
         actions={
           <>
             <ViewToggle
+              className="hidden sm:flex"
               value={viewMode}
               onChange={(mode) =>
                 dispatch(setViewMode({ key: "products", mode }))
@@ -196,7 +204,7 @@ export function ProductsView() {
           value={search}
           onChange={setSearch}
           placeholder="Search master items..."
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-56 lg:w-72"
         />
         <Select
           aria-label="Filter by category"
@@ -215,13 +223,13 @@ export function ProductsView() {
         />
       ) : isLoading ? (
         <RegistrySkeleton
-          viewMode={viewMode}
+          viewMode={mode}
           label="Loading master items"
           columns={6}
         />
       ) : filtered.length === 0 ? (
         <EmptyState message="No items found" icon={LuPackageX} />
-      ) : viewMode === ViewMode.Grid ? (
+      ) : mode === ViewMode.Grid ? (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((product) => (
             <Card key={product.id} interactive padded={false}>

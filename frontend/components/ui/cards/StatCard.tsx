@@ -14,6 +14,8 @@ const iconTones: Record<Tone, string> = {
 interface StatCardProps {
   label: string;
   value: string | number;
+  /** For grid placement — e.g. spanning an odd card across a 2-column row. */
+  className?: string;
   icon: IconType;
   tone?: Tone;
   /** e.g. "+8.5%". Sign decides the arrow direction and the colour. */
@@ -31,12 +33,18 @@ export function StatCard({
   delta,
   deltaCaption = "from yesterday",
   caption,
+  className,
 }: StatCardProps) {
   const isNegative = delta?.trim().startsWith("-") ?? false;
   const DeltaIcon = isNegative ? LuTrendingDown : LuTrendingUp;
 
   return (
-    <div className="hover-lift bg-surface border-border rounded-card flex h-28 flex-col justify-between border p-3 shadow-card sm:h-32 sm:p-4">
+    <div
+      className={cn(
+        "hover-lift bg-surface border-border rounded-card flex h-28 flex-col justify-between border p-3 shadow-card sm:h-32 sm:p-4",
+        className,
+      )}
+    >
       <div className="flex items-start justify-between">
         <div className="min-w-0">
           <p className="text-micro text-foreground-subtle sm:text-label font-bold tracking-tight uppercase">

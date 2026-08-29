@@ -7,6 +7,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 333 4455667",
     idcard: "35201-5566778-9",
     email: "bilal.khan@blanksys.pos",
+    area: "G-11 & G-10 Sectors",
     address: "G-11/2, Islamabad",
   },
   {
@@ -15,6 +16,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 300 9988112",
     idcard: "35202-3344112-3",
     email: "tariq.m@blanksys.pos",
+    area: "Samanabad & Sanda",
     address: "Samanabad, Lahore",
   },
   {
@@ -23,6 +25,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 321 4455998",
     idcard: "42101-7788445-1",
     email: "rashid.r@blanksys.pos",
+    area: "Saddar & Clifton",
     address: "Saddar, Karachi",
   },
   {
@@ -31,6 +34,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 345 2233114",
     idcard: "37405-1122889-7",
     email: "waleed.a@blanksys.pos",
+    area: "Satellite Town & Chandni Chowk",
     address: "Satellite Town, Rawalpindi",
   },
   {
@@ -39,6 +43,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 312 6677334",
     idcard: "35201-8899443-5",
     email: "kashif.ali@blanksys.pos",
+    area: "Shadman & Gulberg",
     address: "Shadman, Lahore",
   },
   {
@@ -47,6 +52,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 308 1122445",
     idcard: "36302-3344998-1",
     email: "imran.n@blanksys.pos",
+    area: "Bosan Road & Cantt",
     address: "Bosan Road, Multan",
   },
   {
@@ -55,6 +61,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 322 7788112",
     idcard: "35202-9988443-2",
     email: "zeeshan.b@blanksys.pos",
+    area: "Baghbanpura & Shalimar",
     address: "Baghbanpura, Lahore",
   },
   {
@@ -63,6 +70,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 334 5566112",
     idcard: "34101-4455889-8",
     email: "noman.d@blanksys.pos",
+    area: "DC Colony & Model Town",
     address: "DC Colony, Gujranwala",
   },
   {
@@ -71,6 +79,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 301 3344998",
     idcard: "42201-1122667-4",
     email: "farhan.a@blanksys.pos",
+    area: "North Nazimabad & Gulshan",
     address: "North Nazimabad, Karachi",
   },
   {
@@ -79,6 +88,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 315 8899223",
     idcard: "37405-6677112-9",
     email: "sajid.w@blanksys.pos",
+    area: "Chaklala & Westridge",
     address: "Westridge, Rawalpindi",
   },
   {
@@ -87,6 +97,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 304 4455889",
     idcard: "35201-2233667-6",
     email: "mohsin.a@blanksys.pos",
+    area: "Township & Johar Town",
     address: "Township, Lahore",
   },
   {
@@ -95,6 +106,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 320 9900223",
     idcard: "42301-7788112-5",
     email: "junaid.j@blanksys.pos",
+    area: "Korangi & Landhi",
     address: "Korangi Road, Karachi",
   },
   {
@@ -103,6 +115,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 335 1122998",
     idcard: "17301-8899334-1",
     email: "shahid.a@blanksys.pos",
+    area: "Hayatabad & University Town",
     address: "Hayatabad, Peshawar",
   },
   {
@@ -111,6 +124,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 313 7788443",
     idcard: "37405-3344112-8",
     email: "haris.r@blanksys.pos",
+    area: "Tench Bhatta & Saddar",
     address: "Tench Bhatta, Rawalpindi",
   },
   {
@@ -119,6 +133,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 307 2233889",
     idcard: "15302-5566112-3",
     email: "naseem.s@blanksys.pos",
+    area: "Lower Dir & Timergara",
     address: "Lower Dir, KPK",
   },
   {
@@ -127,6 +142,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 324 8899112",
     idcard: "17301-4455223-7",
     email: "shaheen.a@blanksys.pos",
+    area: "Landi Kotal & Jamrud",
     address: "Landi Kotal, KPK",
   },
   {
@@ -135,6 +151,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 303 5566223",
     idcard: "35202-6677998-4",
     email: "babar.a@blanksys.pos",
+    area: "Ferozepur Road & Kahna",
     address: "Ferozepur Road, Lahore",
   },
   {
@@ -143,6 +160,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 316 1122778",
     idcard: "17301-9988223-6",
     email: "rizwan.a@blanksys.pos",
+    area: "Charsadda Road & Board Bazaar",
     address: "Charsadda Road, Peshawar",
   },
   {
@@ -151,6 +169,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 341 8899554",
     idcard: "38302-3344778-2",
     email: "shadab.k@blanksys.pos",
+    area: "Mianwali & Piplan",
     address: "Mianwali City",
   },
   {
@@ -159,6 +178,7 @@ export const seedCouriers: Courier[] = [
     phone: "+92 309 4433112",
     idcard: "17301-2233998-5",
     email: "iftikhar.a@blanksys.pos",
+    area: "Abbottabad & Havelian",
     address: "Khyber Gate, Peshawar",
   },
 ];

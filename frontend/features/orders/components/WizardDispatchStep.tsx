@@ -2,23 +2,9 @@
 
 import type { Courier } from "@app-types/index";
 import { FormField, Select } from "@components/ui/fields";
-import { PaymentType, WEEKDAY_SHORT } from "@enums/index";
+import { WEEKDAY_SHORT } from "@enums/index";
 import { formatCurrency } from "@utils/helper/format";
-import { cn } from "@utils/libs/cn";
 import { ONE_OFF, type OrderWizardController } from "../hooks/useOrderWizard";
-
-const PAYMENT_OPTIONS = [
-  {
-    value: PaymentType.Paid,
-    label: "Cash / Paid",
-    tone: "text-foreground-body",
-  },
-  {
-    value: PaymentType.OnCredit,
-    label: "On Credit",
-    tone: "text-warning-text",
-  },
-] as const;
 
 export function WizardDispatchStep({
   couriers,
@@ -29,9 +15,17 @@ export function WizardDispatchStep({
 }) {
   return (
     <div className="space-y-3">
-      <h4 className="text-foreground-body text-xs font-extrabold">
-        Step 3: Dispatch &amp; Payment Mode
-      </h4>
+      <div>
+        <h4 className="text-foreground-body text-xs font-extrabold">
+          Step 3: Dispatch
+        </h4>
+        {/* No payment method here on purpose: the bill is raised before the van
+            leaves, and what the customer hands over is only known at the door.
+            It is recorded against the delivery afterwards. */}
+        <p className="text-micro text-foreground-subtle">
+          Who delivers it. Payment is recorded at the door.
+        </p>
+      </div>
 
       <FormField label="Select Delivery Courier" htmlFor="wizard-courier">
         <Select
@@ -47,40 +41,6 @@ export function WizardDispatchStep({
           }))}
         />
       </FormField>
-
-      <fieldset>
-        <legend className="text-micro text-foreground-body mb-0.5 block font-bold">
-          Payment Method
-        </legend>
-        <div className="grid grid-cols-2 gap-2">
-          {PAYMENT_OPTIONS.map((option) => {
-            const checked = wizard.paymentType === option.value;
-            return (
-              <label
-                key={option.value}
-                className={cn(
-                  "rounded-control flex cursor-pointer items-center gap-2 border p-2.5 transition-colors",
-                  checked
-                    ? "border-accent bg-accent-soft"
-                    : "border-border hover:bg-surface-muted",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="paymentType"
-                  value={option.value}
-                  checked={checked}
-                  onChange={() => wizard.setPaymentType(option.value)}
-                  className="accent-accent"
-                />
-                <span className={cn("text-xs font-bold", option.tone)}>
-                  {option.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
 
       {/* The per-day breakdown, so what prints is visible before it prints.
           Empty days are omitted — a day with nothing on it is not a delivery. */}
@@ -145,7 +105,7 @@ export function WizardDispatchStep({
           </div>
         ) : null}
         <div className="border-border flex justify-between gap-2 border-t pt-1">
-          <dt className="text-foreground-body">Grand Total:</dt>
+          <dt className="text-foreground-body">This delivery:</dt>
           <dd className="text-accent-text font-extrabold">
             {formatCurrency(wizard.total)}
           </dd>

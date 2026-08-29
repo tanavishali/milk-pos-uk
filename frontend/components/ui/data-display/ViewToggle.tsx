@@ -9,6 +9,7 @@ interface ViewToggleProps {
   onChange: (mode: ViewMode) => void;
   /** Which mode sits on the left — products lead with grid, the rest with list. */
   order?: [ViewMode, ViewMode];
+  className?: string;
 }
 
 const icons = {
@@ -29,12 +30,16 @@ export function ViewToggle({
   value,
   onChange,
   order = [ViewMode.List, ViewMode.Grid],
+  className,
 }: ViewToggleProps) {
   return (
     <div
       role="radiogroup"
       aria-label="View mode"
-      className="bg-surface border-border rounded-control flex items-center border p-1"
+      className={cn(
+        "bg-surface border-border rounded-control flex items-center border p-1",
+        className,
+      )}
     >
       {order.map((mode) => {
         const Icon = icons[mode];

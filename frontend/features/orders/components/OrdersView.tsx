@@ -4,6 +4,7 @@ import {
   LuBanknote,
   LuCirclePlus,
   LuClock,
+  LuHandCoins,
   LuPrinter,
   LuReceiptText,
   LuSearchX,
@@ -35,13 +36,15 @@ import {
   RegistrySkeleton,
   SkeletonStatCards,
 } from "@components/ui/states";
-import { PaymentType, ViewMode, WEEKDAYS, type Weekday } from "@enums/index";
+import { PaymentStatus, ViewMode, WEEKDAYS, type Weekday } from "@enums/index";
+import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { clearNewOrderRequest, setViewMode } from "@store/slices/uiSlice";
 import { DELIVERY_ROUNDS, roundLabel } from "@constants/index";
 import { formatCurrency } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
+import { RecordPaymentModal } from "@features/payments/index";
 import { useGetOrdersQuery } from "../api/ordersApi";
 import { InvoiceModal } from "./InvoiceModal";
 import { OrderWizard } from "./OrderWizard";
@@ -59,12 +62,22 @@ const totalUnits = (order: Order) =>
 const orderDays = (order: Order): Weekday[] =>
   WEEKDAYS.filter((day) => order.items.some((line) => line.day === day));
 
-const paymentTone = (type: PaymentType) =>
-  type === PaymentType.OnCredit ? "warning" : "success";
+const statusTone = (status: PaymentStatus) => {
+  if (status === PaymentStatus.Paid) return "success";
+  return status === PaymentStatus.Partial ? "info" : "warning";
+};
 
 export function OrdersView() {
   const dispatch = useAppDispatch();
   const viewMode = useAppSelector((state) => state.ui.viewModes.orders);
+  // A seven-column table cannot be read on a 360px screen, so below `sm` the
+  // registry shows cards whatever the stored preference says. The preference is
+  // left untouched — it is what the operator chose for their desktop, and going
+  // back there should not require setting it again.
+  const compact = useIsCompact();
+  const mode = compact ? ViewMode.Grid : viewMode;
+  // Whoever is signed in is who the ledger records as taking the money.
+  const user = useAppSelector((state) => state.auth.user);
   const {
     data: orders = [],
     isLoading,
@@ -73,9 +86,12 @@ export function OrdersView() {
   } = useGetOrdersQuery();
 
   const [locallyOpen, setLocallyOpen] = useState(false);
-  const [receipt, setReceipt] = useState<Order | undefined>();
+  // Ids, not rows: a payment recorded from either dialog changes the figures
+  // the other one shows, and a captured object would keep printing the old ones.
+  const [receiptId, setReceiptId] = useState<string | undefined>();
+  const [collectingId, setCollectingId] = useState<string | undefined>();
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"" | PaymentType>("");
+  const [status, setStatus] = useState<"" | PaymentStatus>("");
   const [round, setRound] = useState("");
 
   // Address is searchable too: "which orders go to Gulberg?" is a dispatch
@@ -94,7 +110,7 @@ export function OrdersView() {
             order.courier,
             roundLabel(order.customer.round),
           ) &&
-          (!status || order.paymentType === status) &&
+          (!status || order.status === status) &&
           // "none" is a real choice — it finds the walk-in orders that belong to
           // no round at all.
           (round === "" ||
@@ -120,26 +136,24 @@ export function OrdersView() {
   const { pageItems, startIndex, canPrev, canNext, step } =
     usePagination(filtered);
 
+  const receipt = orders.find((order) => order.id === receiptId);
+  const collecting = orders.find((order) => order.id === collectingId);
+
   // Registry-wide, not filter-scoped: these answer "what is outstanding across
   // the till", which a search for one customer should not change.
   const stats = useMemo(() => {
-    const paid = orders.filter((o) => o.paymentType === PaymentType.Paid);
-    // Outstanding means unpaid *and* not yet rolled into a later bill; counting
-    // settled rows would double the debt every time one is carried forward.
-    const credit = orders.filter(
-      (o) => o.paymentType === PaymentType.OnCredit && !o.settledBy,
-    );
-    // Revenue sums `total`, not `grandTotal`: a carried balance is money already
-    // counted on the bill it came from, not a second sale.
-    const goods = (rows: Order[]) => rows.reduce((n, o) => n + o.total, 0);
-    const due = (rows: Order[]) => rows.reduce((n, o) => n + o.grandTotal, 0);
+    // Every figure sums `total` and `settledAmount`, never `grandTotal`: an
+    // earlier balance printed on a docket is money already counted on the bill
+    // it came from, and adding it here would count the same debt twice.
+    const billed = orders.reduce((n, o) => n + o.total, 0);
+    const collected = orders.reduce((n, o) => n + o.settledAmount, 0);
+    const open = orders.filter((o) => o.status !== PaymentStatus.Paid);
     return {
       count: orders.length,
-      revenue: goods(orders),
-      paidCount: paid.length,
-      paidTotal: goods(paid),
-      creditCount: credit.length,
-      creditTotal: due(credit),
+      billed,
+      collected,
+      openCount: open.length,
+      outstanding: billed - collected,
     };
   }, [orders]);
 
@@ -162,25 +176,27 @@ export function OrdersView() {
             caption="All transactions"
           />
           <StatCard
-            label="Revenue"
-            value={formatCurrency(stats.revenue)}
+            label="Billed"
+            value={formatCurrency(stats.billed)}
+            icon={LuReceiptText}
+            tone="accent"
+            caption="Goods delivered"
+          />
+          <StatCard
+            label="Collected"
+            value={formatCurrency(stats.collected)}
             icon={LuBanknote}
             tone="success"
-            caption="Across the registry"
+            caption="Cash received"
           />
           <StatCard
-            label="Paid"
-            value={stats.paidCount}
-            icon={LuReceiptText}
-            tone="success"
-            caption={`${formatCurrency(stats.paidTotal)} settled`}
-          />
-          <StatCard
-            label="On Credit"
-            value={stats.creditCount}
+            label="Outstanding"
+            value={formatCurrency(stats.outstanding)}
             icon={LuClock}
-            tone="danger"
-            caption={`${formatCurrency(stats.creditTotal)} outstanding`}
+            tone={stats.outstanding > 0 ? "danger" : "success"}
+            caption={`${stats.openCount} bill${
+              stats.openCount === 1 ? "" : "s"
+            } still open`}
           />
         </div>
       )}
@@ -189,6 +205,7 @@ export function OrdersView() {
         actions={
           <>
             <ViewToggle
+              className="hidden sm:flex"
               value={viewMode}
               onChange={(mode) =>
                 dispatch(setViewMode({ key: "orders", mode }))
@@ -209,18 +226,19 @@ export function OrdersView() {
           onChange={setSearch}
           clearable
           placeholder="Search txn, customer, phone, address, round..."
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-56 lg:w-72"
         />
         <Select
           aria-label="Filter by payment status"
           value={status}
           onChange={(event) =>
-            setStatus(event.target.value as "" | PaymentType)
+            setStatus(event.target.value as "" | PaymentStatus)
           }
           placeholder="All Statuses"
           options={[
-            { value: PaymentType.Paid, label: "Paid" },
-            { value: PaymentType.OnCredit, label: "On Credit" },
+            { value: PaymentStatus.Unpaid, label: "Unpaid" },
+            { value: PaymentStatus.Partial, label: "Part Paid" },
+            { value: PaymentStatus.Paid, label: "Paid" },
           ]}
           className="w-full sm:w-auto"
         />
@@ -244,7 +262,7 @@ export function OrdersView() {
         />
       ) : isLoading ? (
         <RegistrySkeleton
-          viewMode={viewMode}
+          viewMode={mode}
           label="Loading transactions"
           columns={7}
         />
@@ -257,7 +275,7 @@ export function OrdersView() {
           message="No transactions match this search"
           icon={LuSearchX}
         />
-      ) : viewMode === ViewMode.Grid ? (
+      ) : mode === ViewMode.Grid ? (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((order) => (
             <Card key={order.id} interactive padded={false}>
@@ -266,8 +284,8 @@ export function OrdersView() {
                   <span className="text-foreground-strong font-mono text-xs font-bold">
                     {order.id}
                   </span>
-                  <Badge pill tone={paymentTone(order.paymentType)}>
-                    {order.paymentType}
+                  <Badge pill tone={statusTone(order.status)}>
+                    {order.status}
                   </Badge>
                 </div>
 
@@ -290,13 +308,21 @@ export function OrdersView() {
                 </p>
 
                 <div className="mt-3 flex items-baseline gap-2">
+                  {/* This delivery's own goods. The account balance is a
+                      separate line: one is a fact about this bill, the other
+                      moves every time cash comes in. */}
                   <span className="text-foreground-strong font-display text-xl font-bold">
-                    {formatCurrency(order.grandTotal)}
+                    {formatCurrency(order.total)}
                   </span>
                   <span className="text-foreground-subtle text-xs">
                     {totalUnits(order)} items
                   </span>
                 </div>
+                {order.customerBalance > 0 ? (
+                  <p className="text-warning-text text-micro mt-1 font-bold">
+                    {formatCurrency(order.customerBalance)} owed on this account
+                  </p>
+                ) : null}
               </div>
 
               <CardActions
@@ -305,7 +331,13 @@ export function OrdersView() {
                     label: "Receipt",
                     icon: LuPrinter,
                     tone: "accent",
-                    onClick: () => setReceipt(order),
+                    onClick: () => setReceiptId(order.id),
+                  },
+                  {
+                    label: "Collect",
+                    icon: LuHandCoins,
+                    tone: "info",
+                    onClick: () => setCollectingId(order.id),
                   },
                 ]}
               />
@@ -322,8 +354,8 @@ export function OrdersView() {
             { label: "Courier" },
             { label: "Qty" },
             { label: "Status" },
-            { label: "Total" },
-            { label: "Receipt", align: "right" },
+            { label: "Due at door" },
+            { label: "Actions", align: "right" },
           ]}
         >
           {pageItems.map((order) => (
@@ -360,27 +392,42 @@ export function OrdersView() {
                 {totalUnits(order)} pcs
               </TableCell>
               <TableCell className="whitespace-nowrap">
-                <Badge pill tone={paymentTone(order.paymentType)}>
-                  {order.paymentType}
+                <Badge pill tone={statusTone(order.status)}>
+                  {order.status}
                 </Badge>
+                {order.receivedAtDelivery > 0 ? (
+                  <div className="text-nano text-success-text mt-0.5 font-semibold">
+                    {formatCurrency(order.receivedAtDelivery)} taken here
+                  </div>
+                ) : null}
               </TableCell>
               <TableCell className="text-foreground-strong font-extrabold whitespace-nowrap">
                 {formatCurrency(order.grandTotal)}
                 {order.previousBalance > 0 ? (
                   <span className="text-nano text-warning-text block font-semibold">
-                    incl. {formatCurrency(order.previousBalance)} carried
+                    incl. {formatCurrency(order.previousBalance)} earlier
                   </span>
                 ) : null}
               </TableCell>
               <TableCell align="right" className="whitespace-nowrap">
-                <button
-                  type="button"
-                  onClick={() => setReceipt(order)}
-                  className="text-accent-text border-border hover:bg-accent-soft rounded-control-sm text-label inline-flex items-center gap-1 border px-2.5 py-1 font-bold transition-colors"
-                >
-                  <LuPrinter className="h-3.5 w-3.5" aria-hidden />
-                  Receipt
-                </button>
+                <div className="flex justify-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setReceiptId(order.id)}
+                    className="text-accent-text border-border hover:bg-accent-soft rounded-control-sm text-label inline-flex items-center gap-1 border px-2.5 py-1 font-bold transition-colors"
+                  >
+                    <LuPrinter className="h-3.5 w-3.5" aria-hidden />
+                    Receipt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCollectingId(order.id)}
+                    className="text-info-text border-border hover:bg-info-soft rounded-control-sm text-label inline-flex items-center gap-1 border px-2.5 py-1 font-bold transition-colors"
+                  >
+                    <LuHandCoins className="h-3.5 w-3.5" aria-hidden />
+                    Collect
+                  </button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -401,11 +448,26 @@ export function OrdersView() {
       )}
 
       {wizardOpen ? (
-        <OrderWizard onClose={closeWizard} onIssued={setReceipt} />
+        <OrderWizard onClose={closeWizard} onIssued={setReceiptId} />
       ) : null}
 
       {receipt ? (
-        <InvoiceModal order={receipt} onClose={() => setReceipt(undefined)} />
+        <InvoiceModal
+          order={receipt}
+          onCollect={() => {
+            setCollectingId(receipt.id);
+            setReceiptId(undefined);
+          }}
+          onClose={() => setReceiptId(undefined)}
+        />
+      ) : null}
+
+      {collecting ? (
+        <RecordPaymentModal
+          order={collecting}
+          receivedBy={user?.name ?? "Admin"}
+          onClose={() => setCollectingId(undefined)}
+        />
       ) : null}
     </div>
   );

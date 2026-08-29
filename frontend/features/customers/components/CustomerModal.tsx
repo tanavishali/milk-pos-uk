@@ -23,6 +23,7 @@ const EMPTY: CustomerDraft = {
   round: "",
   deliveryDays: [],
   email: "",
+  area: "",
   address: "",
   postcode: "",
 };
@@ -43,6 +44,7 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
           round: customer.round,
           deliveryDays: customer.deliveryDays,
           email: customer.email,
+          area: customer.area,
           address: customer.address,
           postcode: customer.postcode,
         }
@@ -54,7 +56,7 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
   const saving = createState.isLoading || updateState.isLoading;
 
   const set = (
-    key: "name" | "phone" | "email" | "address" | "postcode",
+    key: "name" | "phone" | "email" | "area" | "address" | "postcode",
     value: string,
   ) => setDraft((prev) => ({ ...prev, [key]: value }));
 
@@ -158,6 +160,20 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
             placeholder="name@example.com"
             value={draft.email}
             onChange={(e) => set("email", e.target.value)}
+            className={inputClass()}
+          />
+        </FormField>
+
+        {/* Above the address, as on the courier form: dispatch groups the round
+            by area first and only needs the house number at the door. */}
+        <FormField label="Area" htmlFor="cust-area" required>
+          <textarea
+            id="cust-area"
+            required
+            rows={2}
+            value={draft.area}
+            onChange={(e) => set("area", e.target.value)}
+            placeholder="Delivery area — e.g. Model Town, Lahore"
             className={inputClass()}
           />
         </FormField>

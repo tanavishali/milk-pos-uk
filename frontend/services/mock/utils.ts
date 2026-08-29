@@ -77,6 +77,19 @@ export function delay(ms: number = READ_LATENCY_MS): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Money, rounded to the cent.
+ *
+ * Every total in the ledger goes through this. Floating point makes
+ * `24.5 + 9.99` come out as `34.489999999999995`, which is invisible in a
+ * formatted figure but decides whether a bill reads Paid or Part Paid when the
+ * comparison is against `34.49`. Rounding at each step keeps the arithmetic and
+ * the printed number the same thing.
+ */
+export function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 /** Deep-ish clone for handing callers data they cannot mutate in place. */
 export function clone<T>(value: T): T {
   return structuredClone(value);

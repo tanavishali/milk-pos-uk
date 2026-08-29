@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Customer, OrderLine, Product } from "@app-types/index";
-import { PaymentType, WEEKDAYS, Weekday, WizardStep } from "@enums/index";
+import { WEEKDAYS, Weekday, WizardStep } from "@enums/index";
 
 /**
  * Which delivery slot a cart line belongs to.
@@ -52,11 +52,13 @@ export function useOrderWizard() {
   const [customer, setCustomerState] = useState<Customer | undefined>();
   const [cart, setCart] = useState<Cart>({});
   const [courierId, setCourierId] = useState("");
-  const [paymentType, setPaymentType] = useState(PaymentType.Paid);
   const [error, setError] = useState<string | undefined>();
   const [requestedDay, setRequestedDay] = useState<DayKey | undefined>();
-  // Defaults on: if a customer owes money, the till should ask for it.
-  const [includePrevious, setIncludePrevious] = useState(true);
+  // Most deliveries are paid at the door, so that is the default. The previous
+  // balance defaults the other way: writing off an old debt is a deliberate act
+  // and must not happen because someone tapped through the step.
+  const [billPaid, setBillPaid] = useState(true);
+  const [clearPrevious, setClearPrevious] = useState(false);
 
   /**
    * The slots this order can be split across: the customer's round in
@@ -92,10 +94,10 @@ export function useOrderWizard() {
     setCustomerState(undefined);
     setCart({});
     setCourierId("");
-    setPaymentType(PaymentType.Paid);
     setError(undefined);
     setRequestedDay(undefined);
-    setIncludePrevious(true);
+    setBillPaid(true);
+    setClearPrevious(false);
   }, []);
 
   /** Only lines on a day this order still covers, with a real quantity. */
@@ -270,10 +272,10 @@ export function useOrderWizard() {
     buckets,
     courierId,
     setCourierId,
-    paymentType,
-    setPaymentType,
-    includePrevious,
-    setIncludePrevious,
+    billPaid,
+    setBillPaid,
+    clearPrevious,
+    setClearPrevious,
     error,
     setError,
     activeLines,

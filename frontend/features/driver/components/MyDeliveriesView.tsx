@@ -3,6 +3,7 @@
 import {
   LuBanknote,
   LuClock,
+  LuHandCoins,
   LuMapPin,
   LuPackageCheck,
   LuPhone,
@@ -22,8 +23,9 @@ import {
   SkeletonScreen,
   SkeletonStatCards,
 } from "@components/ui/states";
-import { PaymentType } from "@enums/index";
+import { PaymentStatus } from "@enums/index";
 import { InvoiceModal } from "@features/orders/index";
+import { RecordPaymentModal } from "@features/payments/index";
 import { useAppSelector } from "@store/hooks";
 import { formatCurrency } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
@@ -37,8 +39,10 @@ const totalUnits = (order: Order) =>
  * where, and whether to collect — but cannot edit an order or reach the
  * registries.
  *
- * "On Credit" is the figure that matters most here, because it is the money the
- * driver has to collect at the door.
+ * The figure that matters most is the account balance, because that is the money
+ * the driver has to ask for at the door — this delivery plus anything the
+ * customer said they would clear next time. Collecting it is the one write a
+ * courier can make.
  */
 export function MyDeliveriesView() {
   const user = useAppSelector((state) => state.auth.user);
@@ -54,8 +58,11 @@ export function MyDeliveriesView() {
   } = useGetMyDeliveriesQuery(courierId, { skip: !courierId });
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"" | PaymentType>("");
-  const [receipt, setReceipt] = useState<Order | undefined>();
+  const [status, setStatus] = useState<"" | PaymentStatus>("");
+  // Ids rather than rows — see the note in OrdersView: collecting at the door
+  // changes what the receipt beside it should say.
+  const [receiptId, setReceiptId] = useState<string | undefined>();
+  const [collectingId, setCollectingId] = useState<string | undefined>();
 
   const filtered = useMemo(
     () =>
@@ -69,21 +76,28 @@ export function MyDeliveriesView() {
             order.customer.address,
             order.customer.postcode,
           ) &&
-          (!status || order.paymentType === status),
+          (!status || order.status === status),
       ),
     [deliveries, search, status],
   );
 
+  const receipt = deliveries.find((order) => order.id === receiptId);
+  const collecting = deliveries.find((order) => order.id === collectingId);
+
   const stats = useMemo(() => {
-    const credit = deliveries.filter(
-      (o) => o.paymentType === PaymentType.OnCredit,
-    );
+    const open = deliveries.filter((o) => o.status !== PaymentStatus.Paid);
+    // One figure per customer, not per delivery: two bills on the same account
+    // share one balance, and adding both rows would ask the driver to collect
+    // the same money twice.
+    const byCustomer = new Map<string, number>();
+    for (const order of deliveries) {
+      byCustomer.set(order.customerId, order.customerBalance);
+    }
     return {
       count: deliveries.length,
       units: deliveries.reduce((n, o) => n + totalUnits(o), 0),
-      // The driver collects what the receipt says, carried balance included.
-      toCollect: credit.reduce((n, o) => n + o.grandTotal, 0),
-      collectCount: credit.length,
+      toCollect: [...byCustomer.values()].reduce((n, amount) => n + amount, 0),
+      collectCount: open.length,
     };
   }, [deliveries]);
 
@@ -110,10 +124,11 @@ export function MyDeliveriesView() {
             value={formatCurrency(stats.toCollect)}
             icon={LuBanknote}
             tone={stats.toCollect > 0 ? "danger" : "success"}
-            caption={`${stats.collectCount} on credit`}
+            caption={`${stats.collectCount} still open`}
           />
           <StatCard
-            label="Prepaid"
+            className="col-span-2 lg:col-span-1"
+            label="Settled"
             value={stats.count - stats.collectCount}
             icon={LuPackageCheck}
             tone="success"
@@ -134,12 +149,13 @@ export function MyDeliveriesView() {
           aria-label="Filter by payment status"
           value={status}
           onChange={(event) =>
-            setStatus(event.target.value as "" | PaymentType)
+            setStatus(event.target.value as "" | PaymentStatus)
           }
           placeholder="All Statuses"
           options={[
-            { value: PaymentType.Paid, label: "Prepaid" },
-            { value: PaymentType.OnCredit, label: "Collect on delivery" },
+            { value: PaymentStatus.Unpaid, label: "Collect on delivery" },
+            { value: PaymentStatus.Partial, label: "Part paid" },
+            { value: PaymentStatus.Paid, label: "Settled" },
           ]}
           className="w-full sm:w-auto"
         />
@@ -167,7 +183,7 @@ export function MyDeliveriesView() {
       ) : (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((order) => {
-            const collect = order.paymentType === PaymentType.OnCredit;
+            const collect = order.customerBalance > 0;
             return (
               <Card key={order.id} interactive padded={false}>
                 <div className="flex-1 p-[18px] pb-3.5">
@@ -175,8 +191,17 @@ export function MyDeliveriesView() {
                     <span className="text-foreground-strong font-mono text-xs font-bold">
                       {order.id}
                     </span>
-                    <Badge pill tone={collect ? "danger" : "success"}>
-                      {collect ? "Collect" : "Prepaid"}
+                    <Badge
+                      pill
+                      tone={
+                        order.status === PaymentStatus.Paid
+                          ? "success"
+                          : order.status === PaymentStatus.Partial
+                            ? "info"
+                            : "danger"
+                      }
+                    >
+                      {order.status}
                     </Badge>
                   </div>
 
@@ -204,6 +229,12 @@ export function MyDeliveriesView() {
                     />
                     {/* Wraps, never truncates — this is the address they drive to. */}
                     <span>
+                      {/* Area first: on a phone at the kerb, the patch name is
+                          what tells the driver they are in the right place. */}
+                      <span className="text-foreground-body font-semibold">
+                        {order.customer.area}
+                      </span>
+                      <br />
                       {order.customer.address}
                       {order.customer.postcode ? (
                         <span className="text-foreground-body font-semibold">
@@ -215,17 +246,40 @@ export function MyDeliveriesView() {
                   </p>
 
                   <div className="mt-3 flex items-baseline gap-2">
+                    {/* The goods in the crate for this door. */}
                     <span className="text-foreground-strong font-display text-xl font-bold">
-                      {formatCurrency(order.grandTotal)}
+                      {formatCurrency(order.total)}
                     </span>
                     <span className="text-foreground-subtle text-xs">
                       {totalUnits(order)} items
                     </span>
                   </div>
-                  {collect ? (
+                  {/* What to actually ask for is the running account balance,
+                      not this bill — a customer three weeks behind owes more
+                      than what is in today's crate.
+                      But only the open bill gives the instruction. The same
+                      balance shows on every card for that customer, and "ask
+                      for £14.50" printed twice reads as £29 to collect. A bill
+                      that is already settled just states the account. */}
+                  {order.status !== PaymentStatus.Paid ? (
                     <p className="text-danger-text mt-1 flex items-center gap-1.5 text-xs font-bold">
                       <LuClock className="h-3.5 w-3.5" aria-hidden />
-                      Collect {formatCurrency(order.grandTotal)} on delivery
+                      Ask for {formatCurrency(order.customerBalance)}
+                    </p>
+                  ) : collect ? (
+                    <p className="text-warning-text mt-1 text-xs font-bold">
+                      Settled &middot; {formatCurrency(order.customerBalance)}{" "}
+                      open on other bills
+                    </p>
+                  ) : (
+                    <p className="text-success-text mt-1 text-xs font-bold">
+                      Account clear — nothing to collect
+                    </p>
+                  )}
+                  {order.receivedAtDelivery > 0 ? (
+                    <p className="text-foreground-subtle text-micro mt-0.5">
+                      {formatCurrency(order.receivedAtDelivery)} already taken
+                      here
                     </p>
                   ) : null}
                 </div>
@@ -236,7 +290,13 @@ export function MyDeliveriesView() {
                       label: "Receipt",
                       icon: LuPrinter,
                       tone: "accent",
-                      onClick: () => setReceipt(order),
+                      onClick: () => setReceiptId(order.id),
+                    },
+                    {
+                      label: "Collect",
+                      icon: LuHandCoins,
+                      tone: "info",
+                      onClick: () => setCollectingId(order.id),
                     },
                   ]}
                 />
@@ -247,7 +307,24 @@ export function MyDeliveriesView() {
       )}
 
       {receipt ? (
-        <InvoiceModal order={receipt} onClose={() => setReceipt(undefined)} />
+        <InvoiceModal
+          order={receipt}
+          onCollect={() => {
+            setCollectingId(receipt.id);
+            setReceiptId(undefined);
+          }}
+          onClose={() => setReceiptId(undefined)}
+        />
+      ) : null}
+
+      {collecting ? (
+        <RecordPaymentModal
+          order={collecting}
+          // The courier's own name goes on the payment: the round's cash has to
+          // be traceable to whoever took it.
+          receivedBy={user?.name ?? "Courier"}
+          onClose={() => setCollectingId(undefined)}
+        />
       ) : null}
     </div>
   );

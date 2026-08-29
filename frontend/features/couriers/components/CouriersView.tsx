@@ -42,6 +42,7 @@ import {
   SkeletonStatCards,
 } from "@components/ui/states";
 import { ViewMode } from "@enums/index";
+import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { setViewMode } from "@store/slices/uiSlice";
@@ -59,6 +60,12 @@ import { CourierModal } from "./CourierModal";
 export function CouriersView() {
   const dispatch = useAppDispatch();
   const viewMode = useAppSelector((state) => state.ui.viewModes.couriers);
+  // A seven-column table cannot be read on a 360px screen, so below `sm` the
+  // registry shows cards whatever the stored preference says. The preference is
+  // left untouched — it is what the operator chose for their desktop, and going
+  // back there should not require setting it again.
+  const compact = useIsCompact();
+  const mode = compact ? ViewMode.Grid : viewMode;
   const {
     data: couriers = [],
     isLoading,
@@ -96,7 +103,7 @@ export function CouriersView() {
   const filtered = useMemo(
     () =>
       couriers.filter((c) =>
-        matchesQuery(search, c.name, c.phone, c.email, c.address),
+        matchesQuery(search, c.name, c.phone, c.email, c.area, c.address),
       ),
     [couriers, search],
   );
@@ -173,6 +180,7 @@ export function CouriersView() {
         actions={
           <>
             <ViewToggle
+              className="hidden sm:flex"
               value={viewMode}
               onChange={(mode) =>
                 dispatch(setViewMode({ key: "couriers", mode }))
@@ -195,7 +203,7 @@ export function CouriersView() {
           value={search}
           onChange={setSearch}
           placeholder="Search couriers..."
-          className="w-full sm:max-w-xs"
+          className="w-full sm:w-56 lg:w-72"
         />
       </Toolbar>
 
@@ -206,13 +214,13 @@ export function CouriersView() {
         />
       ) : isLoading ? (
         <RegistrySkeleton
-          viewMode={viewMode}
+          viewMode={mode}
           label="Loading couriers"
-          columns={5}
+          columns={6}
         />
       ) : filtered.length === 0 ? (
         <EmptyState message="No couriers found" icon={LuUserX} />
-      ) : viewMode === ViewMode.Grid ? (
+      ) : mode === ViewMode.Grid ? (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {pageItems.map((courier) => (
             <Card key={courier.id} interactive padded={false}>
@@ -242,6 +250,13 @@ export function CouriersView() {
                     aria-hidden
                   />
                   <span className="truncate">{courier.email}</span>
+                </p>
+                <p className="text-foreground-body mb-2 flex items-start gap-2 text-[12.5px] leading-relaxed">
+                  <LuMap
+                    className="text-foreground-subtle mt-0.5 h-3.5 w-3.5 shrink-0"
+                    aria-hidden
+                  />
+                  <span className="font-semibold">{courier.area}</span>
                 </p>
                 <p className="text-foreground-muted flex items-start gap-2 text-[12.5px] leading-relaxed">
                   <LuMapPin
@@ -283,6 +298,7 @@ export function CouriersView() {
             { label: "Name" },
             { label: "Contact" },
             { label: "National ID" },
+            { label: "Area" },
             { label: "Address" },
             { label: "Actions", align: "right" },
           ]}
@@ -300,6 +316,9 @@ export function CouriersView() {
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <Badge tone="mono">{courier.idcard}</Badge>
+              </TableCell>
+              <TableCell className="max-w-[150px] truncate font-semibold">
+                {courier.area}
               </TableCell>
               <TableCell className="max-w-[160px] truncate">
                 {courier.address}
@@ -365,6 +384,7 @@ export function CouriersView() {
             // Full width: courier emails are long enough that the card truncates
             // them, which is the reason to open this dialog at all.
             { label: "Email", value: viewing.email, wide: true },
+            { label: "Area", value: viewing.area, wide: true },
             { label: "Address", value: viewing.address, wide: true },
           ]}
         />

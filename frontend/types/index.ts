@@ -8,5 +8,6 @@ export type {
   OrderLine,
   OrderCustomer,
 } from "./order.types";
+export type { Payment, PaymentDraft } from "./payment.types";
 export type { DashboardMetrics } from "./dashboard.types";
 export type { AuthUser, Credentials } from "./auth.types";

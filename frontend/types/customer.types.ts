@@ -16,6 +16,15 @@ export interface Customer {
    */
   deliveryDays: Weekday[];
   email: string;
+  /**
+   * The delivery area this address sits in — the local name for the patch, not
+   * a formal administrative one.
+   *
+   * Stored beside the address rather than parsed out of it: a round is planned
+   * and a driver assigned by area, and "second turning past the mosque" is a
+   * perfectly good address that no parser will ever yield an area from.
+   */
+  area: string;
   address: string;
   /** Postal code for the delivery address. */
   postcode: string;

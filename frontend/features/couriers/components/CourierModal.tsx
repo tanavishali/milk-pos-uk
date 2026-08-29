@@ -15,6 +15,7 @@ const EMPTY: CourierDraft = {
   phone: "",
   idcard: "",
   email: "",
+  area: "",
   address: "",
   password: "",
 };
@@ -33,6 +34,7 @@ export function CourierModal({ onClose, courier }: CourierModalProps) {
           phone: courier.phone,
           idcard: courier.idcard,
           email: courier.email,
+          area: courier.area,
           address: courier.address,
           // Left blank on edit rather than prefilled with a fake mask: a masked
           // value that submits would silently set the password to literal
@@ -144,6 +146,20 @@ export function CourierModal({ onClose, courier }: CourierModalProps) {
             placeholder={editing ? "Leave blank to keep current" : undefined}
             value={draft.password ?? ""}
             onChange={(e) => set("password", e.target.value)}
+            className={inputClass()}
+          />
+        </FormField>
+
+        {/* Above the address on purpose: dispatch reads the area first, and a
+            round is assigned by patch long before anyone needs a house number. */}
+        <FormField label="Area" htmlFor="courier-area" required>
+          <textarea
+            id="courier-area"
+            required
+            rows={2}
+            value={draft.area}
+            onChange={(e) => set("area", e.target.value)}
+            placeholder="Which area this courier covers — e.g. Gulberg & Model Town"
             className={inputClass()}
           />
         </FormField>

@@ -9,6 +9,7 @@ export const tags = {
   Category: "Category",
   Courier: "Courier",
   Order: "Order",
+  Payment: "Payment",
   DashboardMetrics: "DashboardMetrics",
 } as const;
 

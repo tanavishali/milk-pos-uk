@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@utils/libs/cn";
 
-type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "mono";
+type Tone =
+  "neutral" | "accent" | "success" | "warning" | "danger" | "info" | "mono";
 
 const tones: Record<Tone, string> = {
   neutral: "bg-surface-subtle text-foreground-body",
@@ -9,6 +10,8 @@ const tones: Record<Tone, string> = {
   success: "bg-success-muted text-success-text",
   warning: "bg-warning-muted text-warning-text",
   danger: "bg-danger-muted text-danger-text",
+  // The middle state — a part-paid bill is neither settled nor untouched.
+  info: "bg-info-muted text-info-text",
   mono: "bg-surface-subtle text-foreground-body font-mono",
 };
 
