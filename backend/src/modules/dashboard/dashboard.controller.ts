@@ -2,12 +2,32 @@ import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query } from '@nestjs/
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { OrderDto } from '../orders/dto/order.dto';
 import { DashboardMetricsDto } from './dto/dashboard.dto';
+import { DashboardOverviewDto } from './dto/overview.dto';
 import { DashboardService } from './dashboard.service';
 
 @ApiTags('dashboard')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
+
+  @Get('overview')
+  @ApiOperation({
+    summary: 'The whole dashboard in one response',
+    description:
+      'Headline figures plus three panels: who owes money, which bills are open, and what is below the reorder point. One request rather than four, so the panels cannot disagree with each other while the last one is still loading.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 6,
+    description: 'Rows per panel. Each panel also reports its full count.',
+  })
+  @ApiOkResponse({ type: DashboardOverviewDto })
+  overview(
+    @Query('limit', new DefaultValuePipe(6), ParseIntPipe) limit: number,
+  ): Promise<DashboardOverviewDto> {
+    return this.dashboard.overview(limit);
+  }
 
   @Get('metrics')
   @ApiOperation({

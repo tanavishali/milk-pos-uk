@@ -27,12 +27,14 @@ export function WizardDispatchStep({
         </p>
       </div>
 
-      <FormField label="Select Delivery Courier" htmlFor="wizard-courier">
+      <FormField label="Select Delivery Courier" htmlFor="wizard-courier" required>
         <Select
           id="wizard-courier"
           value={wizard.courierId}
           onChange={(event) => wizard.setCourierId(event.target.value)}
-          placeholder="Unassigned"
+          // The empty option still reads "Select a courier" rather than
+          // "Unassigned": it is the prompt to choose, not a choice.
+          placeholder="Select a courier"
           // Value is the id, not the name: the order scopes a driver's own
           // deliveries by id, and two couriers can share a name.
           options={couriers.map((c) => ({

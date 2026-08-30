@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, type ClientSession } from 'mongoose';
+import { LOW_STOCK_THRESHOLD } from '../../common/constants';
 import { toMinorUnits } from '../../common/utils/money';
 import { SequenceService } from '../../database/sequence.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -72,6 +73,22 @@ export class ProductsService {
     }
 
     return { id: code };
+  }
+
+  /**
+   * Items at or below the reorder point, scarcest first — the order they need
+   * buying in. Returns the total as well, so a capped list can say how many it
+   * is standing in for.
+   */
+  async lowStock(limit: number): Promise<{ rows: ProductDto[]; total: number }> {
+    const filter = { quantity: { $lt: LOW_STOCK_THRESHOLD } };
+
+    const [rows, total] = await Promise.all([
+      this.products.find(filter).sort({ quantity: 1 }).limit(limit),
+      this.products.countDocuments(filter),
+    ]);
+
+    return { rows: rows.map((row) => ProductDto.from(row)), total };
   }
 
   /**

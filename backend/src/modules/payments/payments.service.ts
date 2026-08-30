@@ -65,6 +65,20 @@ export class PaymentsService {
     return byOrder;
   }
 
+  /**
+   * Everything each customer has paid, in one pass.
+   *
+   * Aggregated rather than looped: the dashboard needs this for every customer
+   * at once, and one round trip beats one per head.
+   */
+  async paidTotalsByCustomer(): Promise<Map<string, number>> {
+    const rows = await this.payments.aggregate<{ _id: string; total: number }>([
+      { $group: { _id: '$customerId', total: { $sum: '$amountMinor' } } },
+    ]);
+
+    return new Map(rows.map((row) => [row._id, row.total]));
+  }
+
   /** Every payment ever taken, in pence — the dashboard's `collected`. */
   async collectedMinor(): Promise<number> {
     const rows = await this.payments.find().select('amountMinor');

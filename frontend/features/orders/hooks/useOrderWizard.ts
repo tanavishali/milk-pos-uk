@@ -229,6 +229,13 @@ export function useOrderWizard() {
     }
 
     if (step === WizardStep.Dispatch) {
+      // A bill has to leave with a named driver: the courier is printed on the
+      // receipt and is what scopes the driver's own delivery list, so an
+      // unassigned order is one nobody is going to see.
+      if (!courierId) {
+        setError("Choose a courier to continue.");
+        return false;
+      }
       setError(undefined);
       setStep(WizardStep.Balance);
       return false;
@@ -236,7 +243,7 @@ export function useOrderWizard() {
 
     // Step 4 — the caller issues the order.
     return true;
-  }, [step, customer, activeLines.length, days.length]);
+  }, [step, customer, activeLines.length, days.length, courierId]);
 
   const back = useCallback(() => {
     setError(undefined);

@@ -236,6 +236,56 @@ export class OrdersService {
     );
   }
 
+  /**
+   * What each customer has been billed, in one aggregation.
+   *
+   * Sums each bill's own `total` — never `grandTotal`, which carries a
+   * snapshot of an earlier bill's debt and would count the same money twice.
+   */
+  async billedTotalsByCustomer(): Promise<Map<string, { billedMinor: number; name: string; round: string }>> {
+    const rows = await this.orders.aggregate<{
+      _id: string;
+      billedMinor: number;
+      name: string;
+      round: string;
+    }>([
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$customerId',
+          billedMinor: { $sum: '$totalMinor' },
+          /** The customer as most recently copied onto a bill. */
+          name: { $first: '$customer.name' },
+          round: { $first: '$customer.round' },
+        },
+      },
+    ]);
+
+    return new Map(
+      rows.map((row) => [
+        row._id,
+        { billedMinor: row.billedMinor, name: row.name, round: row.round },
+      ]),
+    );
+  }
+
+  /**
+   * Every decorated order belonging to the given customers, newest first.
+   *
+   * Used by the dashboard to find open bills without decorating the whole
+   * ledger: a customer whose balance is zero cannot be holding an open bill,
+   * so only the ones who owe money are worth the allocation.
+   */
+  async forCustomers(customerIds: string[]): Promise<OrderDto[]> {
+    if (customerIds.length === 0) return [];
+
+    return this.decorate(
+      await this.orders
+        .find({ customerId: { $in: customerIds } })
+        .sort({ createdAt: -1 }),
+    );
+  }
+
   /** Billed in pence, and the row count, for the dashboard. */
   async billedMinor(): Promise<{ billedMinor: number; count: number }> {
     const rows = await this.orders.find().select('totalMinor');

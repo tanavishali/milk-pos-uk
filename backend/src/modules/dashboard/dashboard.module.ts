@@ -4,6 +4,7 @@ import { Courier, CourierSchema } from '../couriers/schemas/courier.schema';
 import { Customer, CustomerSchema } from '../customers/schemas/customer.schema';
 import { OrdersModule } from '../orders/orders.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { ProductsModule } from '../products/products.module';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
 
@@ -15,6 +16,8 @@ import { DashboardService } from './dashboard.service';
   imports: [
     OrdersModule,
     PaymentsModule,
+    /** For the low-stock panel. */
+    ProductsModule,
     MongooseModule.forFeature([
       { name: Customer.name, schema: CustomerSchema },
       { name: Courier.name, schema: CourierSchema },
