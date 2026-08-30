@@ -10,13 +10,9 @@ type SignInResponse = AuthUser & { accessToken: string };
 const GENERIC_FAILURE = "Could not sign in. Try again.";
 
 /**
- * Sign-in is the one endpoint already talking to the real backend; every other
- * feature still reads `mockDb` through its own `queryFn`.
- *
- * That is why this is a `queryFn` doing its own `fetch` rather than a `query`
- * over `fetchBaseQuery`: swapping `baseApi`'s base query would change the error
- * type for all eight feature modules at once, and they still return plain
- * strings. Converting them belongs with the endpoint that replaces each mock.
+ * Sign-in does its own `fetch` rather than going through `services/api/http.ts`
+ * like every other endpoint: this is the call that *obtains* the token, so it
+ * is the one request that must not attach one.
  */
 export const authApi = baseApi.injectEndpoints({
   endpoints: (build) => ({

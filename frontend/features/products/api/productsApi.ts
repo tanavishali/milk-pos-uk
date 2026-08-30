@@ -6,8 +6,7 @@ import { tags } from "@services/api/tags";
 /**
  * Master items and their categories, served by the NestJS API.
  *
- * The mock is gone for this feature: `services/mock/products.mock.ts` and both
- * catalogue seeds were deleted, and the rows now live in MongoDB.
+ * The in-memory mock is gone entirely; the rows live in MongoDB.
  *
  * Prices cross the wire as decimal pounds, exactly as `Product` declares them.
  * The backend stores integer pence and converts at its DTO boundary, so no

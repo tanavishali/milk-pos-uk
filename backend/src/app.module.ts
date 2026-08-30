@@ -8,7 +8,10 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { CouriersModule } from './modules/couriers/couriers.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ProductsModule } from './modules/products/products.module';
 
 @Module({
@@ -28,7 +31,9 @@ import { ProductsModule } from './modules/products/products.module';
     CustomersModule,
     CouriersModule,
     DeliveryModule,
-    // TODO: remaining feature modules
+    OrdersModule,
+    PaymentsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

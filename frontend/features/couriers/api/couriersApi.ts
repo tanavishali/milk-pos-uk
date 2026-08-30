@@ -2,7 +2,6 @@ import type { Courier, CourierDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
 import { queryFor, request } from "@services/api/http";
 import { tags } from "@services/api/tags";
-import { setKnownCouriers } from "@services/mock/apiBridge";
 
 /**
  * The dispatch roster, served by the NestJS API.
@@ -10,20 +9,11 @@ import { setKnownCouriers } from "@services/mock/apiBridge";
  * `password` on the draft is write-only: the form collects it, `POST /couriers`
  * turns it into the driver's sign-in account, and no response ever carries it
  * back — `Courier` has no field to put it in.
- *
- * Each successful read also hands the list to the mock bridge, which
- * `ordersMock` still needs to resolve a courier name. That goes when the orders
- * endpoint is written.
  */
 export const couriersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getCouriers: build.query<Courier[], void>({
-      queryFn: () =>
-        queryFor(async () => {
-          const couriers = await request<Courier[]>("/couriers");
-          setKnownCouriers(couriers);
-          return couriers;
-        }),
+      queryFn: () => queryFor(() => request<Courier[]>("/couriers")),
       providesTags: [tags.Courier],
     }),
 

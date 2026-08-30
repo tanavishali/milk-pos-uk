@@ -6,10 +6,14 @@ import { tagTypes } from "./tags";
  * `baseApi.injectEndpoints({...})` — never a second `createApi`, never a raw
  * `fetch`.
  *
- * `fakeBaseQuery` because there is no backend yet: every endpoint supplies a
- * `queryFn` that reads `mockDb`. Moving to a real API means swapping this for
- * `fetchBaseQuery({ baseUrl })` and converting each `queryFn` to a `query`.
- * Call sites do not change.
+ * Still `fakeBaseQuery` even though every endpoint now talks to the real API.
+ * Each one supplies a `queryFn` that goes through `services/api/http.ts`, which
+ * already owns the base URL, the bearer header and the error shape.
+ *
+ * Swapping in `fetchBaseQuery` would change the error type from a plain string
+ * to `FetchBaseQueryError` across all nine endpoint modules at once, for no
+ * behavioural gain — the components read a string today. Worth doing as its own
+ * change, not as a side effect of one.
  */
 export const baseApi = createApi({
   reducerPath: "api",

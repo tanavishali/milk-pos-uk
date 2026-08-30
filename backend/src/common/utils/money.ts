@@ -25,7 +25,11 @@
  *
  * Currency is GBP, so the minor unit is a penny: £34.49 is stored as `3449`.
  *
- * TODO: sum/allocate helpers once the ledger is implemented.
+ * The ledger works entirely in these integers — see
+ * `modules/orders/ledger.service.ts`. That is the point of the choice: with
+ * pence there is no rounding step between operations, so `settled >= total`
+ * is an exact comparison rather than one that has to be nudged into
+ * correctness after every addition.
  */
 
 /**

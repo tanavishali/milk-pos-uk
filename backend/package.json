@@ -12,7 +12,9 @@
     "start:prod": "node dist/main",
     "seed:users": "ts-node -r tsconfig-paths/register src/seed/seed-users.ts",
     "seed:catalogue": "ts-node -r tsconfig-paths/register src/seed/seed-catalogue.ts",
-    "seed": "npm run seed:users && npm run seed:catalogue"
+    "seed": "npm run seed:users && npm run seed:catalogue",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -38,6 +40,7 @@
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

@@ -35,6 +35,9 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('customers', 'The delivery-round customer directory')
     .addTag('couriers', 'The dispatch roster, and the sign-in account behind each driver')
     .addTag('delivery', 'Rounds and weekdays — read-only reference data')
+    .addTag('orders', 'Bills raised on the round, with ledger-derived payment state')
+    .addTag('payments', 'The payment ledger: money in, per customer')
+    .addTag('dashboard', 'Headline figures and the activity log')
     .addTag('health', 'Liveness and database connectivity')
     .build();
 

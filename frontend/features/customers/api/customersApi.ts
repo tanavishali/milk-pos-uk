@@ -2,27 +2,17 @@ import type { Customer, CustomerDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
 import { queryFor, request } from "@services/api/http";
 import { tags } from "@services/api/tags";
-import { setKnownCustomers } from "@services/mock/apiBridge";
 
 /**
  * The customer directory, served by the NestJS API.
  *
- * `services/mock/customers.mock.ts` and `seed.customers.ts` are gone; the rows
- * live in MongoDB.
- *
- * Each successful read also hands the list to `knownCustomers` — the orders and
- * payments mocks still need to resolve a customer by id, and they cannot reach
- * the API themselves. That bridge goes when those endpoints are written.
+ * The whole of `services/mock/` is gone; every registry and the ledger are
+ * served by the API.
  */
 export const customersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getCustomers: build.query<Customer[], void>({
-      queryFn: () =>
-        queryFor(async () => {
-          const customers = await request<Customer[]>("/customers");
-          setKnownCustomers(customers);
-          return customers;
-        }),
+      queryFn: () => queryFor(() => request<Customer[]>("/customers")),
       providesTags: [tags.Customer],
     }),
 

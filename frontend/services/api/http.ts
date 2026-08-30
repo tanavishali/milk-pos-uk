@@ -4,9 +4,8 @@ import { API_BASE_URL } from "./config";
 /**
  * The one place a request to the real backend is built.
  *
- * Endpoints still being served by `services/mock/` do not come through here —
- * each feature moves over as its API is written, and this keeps the moved ones
- * from each repeating the base URL, the bearer header and the error shape.
+ * Every feature goes through this, so the base URL, the bearer header and the
+ * API's error shape are written down once rather than in each endpoint module.
  */
 
 /** The error body every failed request comes back in, per the API's filter. */

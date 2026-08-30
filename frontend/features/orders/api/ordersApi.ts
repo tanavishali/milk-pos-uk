@@ -1,22 +1,19 @@
 import type { Order, OrderDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
+import { queryFor, request } from "@services/api/http";
 import { tags } from "@services/api/tags";
-import {
-  READ_FAILURE_MESSAGE,
-  WRITE_LATENCY_MS,
-  delay,
-  mockDb,
-  shouldFailRead,
-} from "@services/mock/index";
 
+/**
+ * Bills, served by the NestJS API.
+ *
+ * `settledAmount`, `status`, `receivedAtDelivery` and `customerBalance` arrive
+ * computed from the payment ledger — none of them is stored on an order, which
+ * is why recording a collection changes them without any order being written.
+ */
 export const ordersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getOrders: build.query<Order[], void>({
-      queryFn: async () => {
-        await delay();
-        if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
-        return { data: mockDb.orders.list() };
-      },
+      queryFn: () => queryFor(() => request<Order[]>("/orders")),
       providesTags: [tags.Order, tags.Payment],
     }),
 
@@ -31,24 +28,25 @@ export const ordersApi = baseApi.injectEndpoints({
       { orders: Order[]; total: number; paid: number },
       string
     >({
-      queryFn: async (customerId) => {
-        await delay();
-        if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
-        return { data: mockDb.orders.outstanding(customerId) };
-      },
+      queryFn: (customerId) =>
+        queryFor(() =>
+          request<{ orders: Order[]; total: number; paid: number }>(
+            `/orders/outstanding/${customerId}`,
+          ),
+        ),
       providesTags: [tags.Order, tags.Payment],
     }),
 
     createOrder: build.mutation<Order, OrderDraft>({
-      queryFn: async (draft) => {
-        await delay(WRITE_LATENCY_MS);
-        try {
-          return { data: mockDb.orders.create(draft) };
-        } catch (error) {
-          return { error: (error as Error).message };
-        }
-      },
-      // Issuing an order draws down stock, so the product cache is stale too.
+      queryFn: (draft) =>
+        queryFor(() =>
+          request<Order>("/orders", {
+            method: "POST",
+            body: JSON.stringify(draft),
+          }),
+        ),
+      // Issuing an order draws down stock in the same transaction, so the
+      // product cache is stale the moment this lands.
       invalidatesTags: [tags.Order, tags.Product, tags.DashboardMetrics],
     }),
   }),

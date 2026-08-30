@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, type ClientSession } from 'mongoose';
 import { toMinorUnits } from '../../common/utils/money';
 import { SequenceService } from '../../database/sequence.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -72,6 +72,38 @@ export class ProductsService {
     }
 
     return { id: code };
+  }
+
+  /**
+   * Draw stock down for an issued order.
+   *
+   * Runs in the order's own transaction: a receipt that printed without moving
+   * inventory is the one bug a POS cannot have.
+   *
+   * Clamped at zero. Overselling is caught in the wizard, which limits each
+   * line to stock on hand; if something slips past, a negative count on the
+   * shelf is a worse lie than a zero.
+   */
+  async decrementStock(
+    lines: { productId: string; qty: number }[],
+    session?: ClientSession,
+  ): Promise<void> {
+    for (const line of lines) {
+      await this.products
+        .updateOne(
+          { code: line.productId, quantity: { $gte: line.qty } },
+          { $inc: { quantity: -line.qty } },
+        )
+        .session(session ?? null);
+
+      /** Whatever is left when stock ran short goes to zero, never below. */
+      await this.products
+        .updateOne(
+          { code: line.productId, quantity: { $lt: line.qty } },
+          { $set: { quantity: 0 } },
+        )
+        .session(session ?? null);
+    }
   }
 
   private async require(code: string): Promise<ProductDocument> {
