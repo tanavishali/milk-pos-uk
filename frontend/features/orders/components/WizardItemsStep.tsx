@@ -228,7 +228,7 @@ export function WizardItemsStep({
                       htmlFor={`price-${product.id}`}
                       className="text-nano text-foreground-subtle font-bold uppercase"
                     >
-                      Price ($):
+                      Price (€):
                     </label>
                     <input
                       id={`price-${product.id}`}

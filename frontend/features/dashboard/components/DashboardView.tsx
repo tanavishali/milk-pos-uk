@@ -2,7 +2,7 @@
 
 import {
   LuBanknote,
-  LuDollarSign,
+  LuEuro,
   LuPackageX,
   LuSmile,
   LuTriangleAlert,
@@ -76,7 +76,7 @@ export function DashboardView() {
         <StatCard
           label="Billed"
           value={formatCurrency(metrics.grossProfit)}
-          icon={LuDollarSign}
+          icon={LuEuro}
           caption={`${metrics.totalOrders} bills raised`}
         />
         <StatCard

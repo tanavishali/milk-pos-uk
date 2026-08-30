@@ -1,9 +1,18 @@
-/** `$1,234.50` â€” the only money formatter; every price goes through it. */
+/**
+ * `€1,234.50` — the only money formatter; every price goes through it,
+ * including the receipt PDF.
+ *
+ * `style: "currency"` rather than a hand-written prefix, so a negative comes
+ * out as `-€5.00` rather than `€-5.00`. `en-IE` is the euro locale that
+ * groups the way the rest of this UI reads: comma thousands, dot decimals.
+ */
 export function formatCurrency(value: number): string {
-  return `$${value.toLocaleString("en-US", {
+  return value.toLocaleString("en-IE", {
+    style: "currency",
+    currency: "EUR",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  });
 }
 
 /** `YYYY-MM-DD HH:mm` in local time â€” the format receipts print. */

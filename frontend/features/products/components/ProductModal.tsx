@@ -127,7 +127,7 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
         </FormField>
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          <FormField label="Retail Price ($)" htmlFor="prod-retail" required>
+          <FormField label="Retail Price (€)" htmlFor="prod-retail" required>
             <input
               id="prod-retail"
               type="number"
@@ -140,7 +140,7 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
             />
           </FormField>
 
-          <FormField label="Sale Price ($)" htmlFor="prod-sale" required>
+          <FormField label="Sale Price (€)" htmlFor="prod-sale" required>
             <input
               id="prod-sale"
               type="number"
