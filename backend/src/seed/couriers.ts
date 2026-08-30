@@ -1,8 +1,19 @@
-import type { Courier } from "@app-types/index";
+import type { Courier } from '../modules/couriers/schemas/courier.schema';
 
-export const seedCouriers: Courier[] = [
+/**
+ * The starting dispatch roster, moved here from
+ * `frontend/services/mock/seed.couriers.ts` when the couriers API replaced the
+ * in-memory mock.
+ *
+ * Roster rows only. Only COUR-101 has a sign-in account, created by
+ * `seed:users` as the demo courier — the mock gave all twenty the same
+ * `driver123`, and twenty accounts sharing one password is not worth
+ * reproducing. Any courier registered through the UI gets their own account
+ * with the password the form collects.
+ */
+export const SEED_COURIERS: Courier[] = [
   {
-    id: "COUR-101",
+    code: "COUR-101",
     name: "Bilal Khan",
     phone: "+92 333 4455667",
     idcard: "35201-5566778-9",
@@ -11,7 +22,7 @@ export const seedCouriers: Courier[] = [
     address: "G-11/2, Islamabad",
   },
   {
-    id: "COUR-102",
+    code: "COUR-102",
     name: "Tariq Mehmood",
     phone: "+92 300 9988112",
     idcard: "35202-3344112-3",
@@ -20,7 +31,7 @@ export const seedCouriers: Courier[] = [
     address: "Samanabad, Lahore",
   },
   {
-    id: "COUR-103",
+    code: "COUR-103",
     name: "Rashid Minhas",
     phone: "+92 321 4455998",
     idcard: "42101-7788445-1",
@@ -29,7 +40,7 @@ export const seedCouriers: Courier[] = [
     address: "Saddar, Karachi",
   },
   {
-    id: "COUR-104",
+    code: "COUR-104",
     name: "Waleed Aslam",
     phone: "+92 345 2233114",
     idcard: "37405-1122889-7",
@@ -38,7 +49,7 @@ export const seedCouriers: Courier[] = [
     address: "Satellite Town, Rawalpindi",
   },
   {
-    id: "COUR-105",
+    code: "COUR-105",
     name: "Kashif Ali",
     phone: "+92 312 6677334",
     idcard: "35201-8899443-5",
@@ -47,7 +58,7 @@ export const seedCouriers: Courier[] = [
     address: "Shadman, Lahore",
   },
   {
-    id: "COUR-106",
+    code: "COUR-106",
     name: "Imran Nazir",
     phone: "+92 308 1122445",
     idcard: "36302-3344998-1",
@@ -56,7 +67,7 @@ export const seedCouriers: Courier[] = [
     address: "Bosan Road, Multan",
   },
   {
-    id: "COUR-107",
+    code: "COUR-107",
     name: "Zeeshan Butt",
     phone: "+92 322 7788112",
     idcard: "35202-9988443-2",
@@ -65,7 +76,7 @@ export const seedCouriers: Courier[] = [
     address: "Baghbanpura, Lahore",
   },
   {
-    id: "COUR-108",
+    code: "COUR-108",
     name: "Noman Dar",
     phone: "+92 334 5566112",
     idcard: "34101-4455889-8",
@@ -74,7 +85,7 @@ export const seedCouriers: Courier[] = [
     address: "DC Colony, Gujranwala",
   },
   {
-    id: "COUR-109",
+    code: "COUR-109",
     name: "Farhan Akhtar",
     phone: "+92 301 3344998",
     idcard: "42201-1122667-4",
@@ -83,7 +94,7 @@ export const seedCouriers: Courier[] = [
     address: "North Nazimabad, Karachi",
   },
   {
-    id: "COUR-110",
+    code: "COUR-110",
     name: "Sajid Wasti",
     phone: "+92 315 8899223",
     idcard: "37405-6677112-9",
@@ -92,7 +103,7 @@ export const seedCouriers: Courier[] = [
     address: "Westridge, Rawalpindi",
   },
   {
-    id: "COUR-111",
+    code: "COUR-111",
     name: "Mohsin Abbas",
     phone: "+92 304 4455889",
     idcard: "35201-2233667-6",
@@ -101,7 +112,7 @@ export const seedCouriers: Courier[] = [
     address: "Township, Lahore",
   },
   {
-    id: "COUR-112",
+    code: "COUR-112",
     name: "Junaid Jamshed",
     phone: "+92 320 9900223",
     idcard: "42301-7788112-5",
@@ -110,7 +121,7 @@ export const seedCouriers: Courier[] = [
     address: "Korangi Road, Karachi",
   },
   {
-    id: "COUR-113",
+    code: "COUR-113",
     name: "Shahid Afridi",
     phone: "+92 335 1122998",
     idcard: "17301-8899334-1",
@@ -119,7 +130,7 @@ export const seedCouriers: Courier[] = [
     address: "Hayatabad, Peshawar",
   },
   {
-    id: "COUR-114",
+    code: "COUR-114",
     name: "Haris Rauf",
     phone: "+92 313 7788443",
     idcard: "37405-3344112-8",
@@ -128,7 +139,7 @@ export const seedCouriers: Courier[] = [
     address: "Tench Bhatta, Rawalpindi",
   },
   {
-    id: "COUR-115",
+    code: "COUR-115",
     name: "Naseem Shah",
     phone: "+92 307 2233889",
     idcard: "15302-5566112-3",
@@ -137,7 +148,7 @@ export const seedCouriers: Courier[] = [
     address: "Lower Dir, KPK",
   },
   {
-    id: "COUR-116",
+    code: "COUR-116",
     name: "Shaheen Afridi",
     phone: "+92 324 8899112",
     idcard: "17301-4455223-7",
@@ -146,7 +157,7 @@ export const seedCouriers: Courier[] = [
     address: "Landi Kotal, KPK",
   },
   {
-    id: "COUR-117",
+    code: "COUR-117",
     name: "Babar Azam",
     phone: "+92 303 5566223",
     idcard: "35202-6677998-4",
@@ -155,7 +166,7 @@ export const seedCouriers: Courier[] = [
     address: "Ferozepur Road, Lahore",
   },
   {
-    id: "COUR-118",
+    code: "COUR-118",
     name: "Rizwan Ahmed",
     phone: "+92 316 1122778",
     idcard: "17301-9988223-6",
@@ -164,7 +175,7 @@ export const seedCouriers: Courier[] = [
     address: "Charsadda Road, Peshawar",
   },
   {
-    id: "COUR-119",
+    code: "COUR-119",
     name: "Shadab Khan",
     phone: "+92 341 8899554",
     idcard: "38302-3344778-2",
@@ -173,7 +184,7 @@ export const seedCouriers: Courier[] = [
     address: "Mianwali City",
   },
   {
-    id: "COUR-120",
+    code: "COUR-120",
     name: "Iftikhar Ahmed",
     phone: "+92 309 4433112",
     idcard: "17301-2233998-5",

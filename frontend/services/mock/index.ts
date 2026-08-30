@@ -1,5 +1,3 @@
-import { authMock } from "./auth.mock";
-import { couriersMock } from "./couriers.mock";
 import { ordersMock } from "./orders.mock";
 import { paymentsMock } from "./payments.mock";
 
@@ -9,8 +7,6 @@ import { paymentsMock } from "./payments.mock";
  * `queryFn` — never a component and never a type in `types/`.
  */
 export const mockDb = {
-  auth: authMock,
-  couriers: couriersMock,
   orders: ordersMock,
   payments: paymentsMock,
 };
@@ -20,7 +16,10 @@ export type { StoredOrder } from "./types";
 export { delay, READ_LATENCY_MS, WRITE_LATENCY_MS } from "./utils";
 export { READ_FAILURE_MESSAGE, setFailReads, shouldFailRead } from "./faults";
 export {
+  findKnownCourier,
   findKnownCustomer,
+  knownCourierCount,
   knownCustomerCount,
+  setKnownCouriers,
   setKnownCustomers,
-} from "./knownCustomers";
+} from "./apiBridge";

@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AccountsService } from './accounts.service';
 import { User, UserSchema } from './schemas/user.schema';
 
 @Module({
@@ -30,8 +31,12 @@ import { User, UserSchema } from './schemas/user.schema';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard],
-  /** Exported so other modules can guard their own routes with the same token. */
-  exports: [AuthService, JwtModule, JwtAuthGuard],
+  providers: [AuthService, AccountsService, JwtAuthGuard],
+  /**
+   * `JwtModule` and the guard so other modules can protect their own routes
+   * with the same token; `AccountsService` so the couriers module can keep a
+   * driver's login in step with their roster row.
+   */
+  exports: [AuthService, AccountsService, JwtModule, JwtAuthGuard],
 })
 export class AuthModule {}

@@ -1,5 +1,4 @@
-import type { Courier, Payment } from "@app-types/index";
-import { seedCouriers } from "./seed.couriers";
+import type { Payment } from "@app-types/index";
 import { seedOrders } from "./seed.orders";
 import { seedPayments } from "./seed.payments";
 import type { StoredOrder } from "./types";
@@ -14,7 +13,6 @@ import type { StoredOrder } from "./types";
  * descending, and "the 4 most recent" silently means "the 4 oldest".
  */
 export interface MockDatabase {
-  couriers: Courier[];
   orders: StoredOrder[];
   /** Money in, newest-first like `orders`. */
   payments: Payment[];
@@ -22,7 +20,6 @@ export interface MockDatabase {
 
 function buildDatabase(): MockDatabase {
   return {
-    couriers: [...seedCouriers],
     orders: [...seedOrders].reverse(),
     payments: [...seedPayments].reverse(),
   };
@@ -57,7 +54,6 @@ export const db: MockDatabase = resolveDatabase();
 /** Restore the seed. Used by tests, and available from the console in dev. */
 export function resetDatabase(): void {
   const fresh = buildDatabase();
-  db.couriers = fresh.couriers;
   db.orders = fresh.orders;
   db.payments = fresh.payments;
 }

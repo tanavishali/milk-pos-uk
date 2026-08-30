@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { CouriersModule } from './modules/couriers/couriers.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -25,6 +26,7 @@ import { ProductsModule } from './modules/products/products.module';
     ProductsModule,
     CategoriesModule,
     CustomersModule,
+    CouriersModule,
     DeliveryModule,
     // TODO: remaining feature modules
   ],

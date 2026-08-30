@@ -33,6 +33,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('products', 'Master items: catalogue, pricing and stock')
     .addTag('categories', 'Catalogue categories, keyed by name')
     .addTag('customers', 'The delivery-round customer directory')
+    .addTag('couriers', 'The dispatch roster, and the sign-in account behind each driver')
     .addTag('delivery', 'Rounds and weekdays — read-only reference data')
     .addTag('health', 'Liveness and database connectivity')
     .build();

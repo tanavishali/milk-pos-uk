@@ -2,7 +2,12 @@ import type { DashboardMetrics, Order, OrderDraft } from "@app-types/index";
 import { PaymentStatus } from "@enums/index";
 import { formatTimestamp } from "@utils/helper/index";
 import { paymentsMock } from "./payments.mock";
-import { findKnownCustomer, knownCustomerCount } from "./knownCustomers";
+import {
+  findKnownCourier,
+  findKnownCustomer,
+  knownCourierCount,
+  knownCustomerCount,
+} from "./apiBridge";
 import { productsMock } from "./products.mock";
 import { db } from "./seed";
 import type { StoredOrder } from "./types";
@@ -148,7 +153,7 @@ export const ordersMock = {
 
     // The name is resolved from the id, not taken from the caller — so the
     // receipt and the driver's scope can never disagree about who delivers it.
-    const courier = db.couriers.find((c) => c.id === draft.courierId);
+    const courier = findKnownCourier(draft.courierId);
 
     const id = nextId("TRX", db.orders);
     assertUniqueId("orders", id, db.orders);
@@ -238,7 +243,7 @@ export const ordersMock = {
       outstanding: round2(billed - collected),
       totalOrders: db.orders.length,
       totalCustomers: knownCustomerCount(),
-      totalCouriers: db.couriers.length,
+      totalCouriers: knownCourierCount(),
     };
   },
 

@@ -2,7 +2,7 @@ import type { Customer, CustomerDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
 import { queryFor, request } from "@services/api/http";
 import { tags } from "@services/api/tags";
-import { setKnownCustomers } from "@services/mock/knownCustomers";
+import { setKnownCustomers } from "@services/mock/apiBridge";
 
 /**
  * The customer directory, served by the NestJS API.

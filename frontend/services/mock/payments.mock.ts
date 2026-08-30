@@ -1,6 +1,6 @@
 import type { Payment, PaymentDraft } from "@app-types/index";
 import { formatTimestamp } from "@utils/helper/index";
-import { findKnownCustomer } from "./knownCustomers";
+import { findKnownCustomer } from "./apiBridge";
 import { db } from "./seed";
 import { assertUniqueId, clone, nextId, round2 } from "./utils";
 

@@ -21,7 +21,7 @@ export const DEFAULT_POS_SETTINGS = {
  *
  * These are now real accounts in MongoDB, seeded by the backend's
  * `npm run seed:users`, and checked by `POST /api/auth/login` against a bcrypt
- * hash — not by `services/mock/auth.mock.ts`, which sign-in no longer calls.
+ * hash. The auth mock that used to check them is deleted.
  * Change them there and here together, or the card stops working.
  *
  * Still demo credentials: printed on a public page, so never reused for
@@ -31,15 +31,6 @@ export const DEMO_CREDENTIALS = {
   email: "ada.whitfield@blanksys.pos",
   password: "Verdant-Meridian-5644",
 } as const;
-
-/**
- * Fallback password for a courier created through the registry.
- *
- * Only the mock still reads this. Real sign-in credentials live in the
- * backend's `users` collection, so a courier added here cannot sign in until
- * an account is created for them through the API.
- */
-export const COURIER_DEFAULT_PASSWORD = "driver123";
 
 /**
  * A courier to sign in as, surfaced on the login screen beside the admin pair.

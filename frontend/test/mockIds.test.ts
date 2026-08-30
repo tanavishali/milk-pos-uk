@@ -57,10 +57,9 @@ describe("assertUniqueId", () => {
 
 describe("mock backend id uniqueness", () => {
   // The store is module state shared across tests.
-  // Products and customers are no longer part of the mock store — both are
-  // served by the API — so they are not snapshotted here.
+  // Products, customers and couriers are all served by the API now, so the
+  // only id ranges left in this store are orders and payments.
   const seedSnapshot = {
-    couriers: [...db.couriers],
     orders: [...db.orders],
     payments: [...db.payments],
   };

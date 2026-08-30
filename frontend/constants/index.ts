@@ -9,7 +9,6 @@ export {
   DEFAULT_POS_SETTINGS,
   DEMO_CREDENTIALS,
   DEMO_COURIER,
-  COURIER_DEFAULT_PASSWORD,
   PAGE_SIZE,
 } from "./app";
 export { DELIVERY_ROUNDS, roundById, roundLabel } from "./rounds";
