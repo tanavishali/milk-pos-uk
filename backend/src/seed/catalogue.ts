@@ -1,0 +1,180 @@
+import type { Product } from '../modules/products/schemas/product.schema';
+
+/**
+ * The starting catalogue, moved here from
+ * `frontend/services/mock/seed.products.ts` when the products API replaced the
+ * in-memory mock.
+ *
+ * Prices are integer pence: the mock's `24.5` is the pounds figure, stored
+ * here as `2450`.
+ */
+export const SEED_CATEGORIES: string[] = [
+  "Bakery & Pastry",
+  "Dairy",
+  "Beverages",
+  "Dry Goods",
+  "Frozen Items",
+];
+
+export const SEED_PRODUCTS: Product[] = [
+  {
+    code: "PROD-101",
+    name: "Belgian Chocolate Fudge Cake",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 2800,
+    salePriceMinor: 2450,
+    quantity: 15,
+  },
+  {
+    code: "PROD-102",
+    name: "Red Velvet Pastry Pack (4pc)",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 1200,
+    salePriceMinor: 999,
+    quantity: 30,
+  },
+  {
+    code: "PROD-103",
+    name: "Artisan Sourdough Loaf",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 650,
+    salePriceMinor: 550,
+    quantity: 45,
+  },
+  {
+    code: "PROD-104",
+    name: "Organic Almond Milk 1L",
+    category: "Dairy",
+    retailPriceMinor: 450,
+    salePriceMinor: 380,
+    quantity: 50,
+  },
+  {
+    code: "PROD-105",
+    name: "Gourmet Nitro Cold Brew",
+    category: "Beverages",
+    retailPriceMinor: 500,
+    salePriceMinor: 420,
+    quantity: 60,
+  },
+  {
+    code: "PROD-106",
+    name: "Salted Caramel Macarons (6pc)",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 1500,
+    salePriceMinor: 1300,
+    quantity: 25,
+  },
+  {
+    code: "PROD-107",
+    name: "Greek Plain Yogurt 500g",
+    category: "Dairy",
+    retailPriceMinor: 380,
+    salePriceMinor: 320,
+    quantity: 40,
+  },
+  {
+    code: "PROD-108",
+    name: "Butter Croissants (2pc Pack)",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 450,
+    salePriceMinor: 399,
+    quantity: 35,
+  },
+  {
+    code: "PROD-109",
+    name: "English Breakfast Tea Leaves 250g",
+    category: "Beverages",
+    retailPriceMinor: 800,
+    salePriceMinor: 680,
+    quantity: 70,
+  },
+  {
+    code: "PROD-110",
+    name: "Organic Honey 500g",
+    category: "Dry Goods",
+    retailPriceMinor: 1400,
+    salePriceMinor: 1250,
+    quantity: 30,
+  },
+  {
+    code: "PROD-111",
+    name: "Fresh Mozzarella Cheese Ball",
+    category: "Dairy",
+    retailPriceMinor: 600,
+    salePriceMinor: 520,
+    quantity: 20,
+  },
+  {
+    code: "PROD-112",
+    name: "Sparkling Mineral Water 750ml",
+    category: "Beverages",
+    retailPriceMinor: 250,
+    salePriceMinor: 200,
+    quantity: 100,
+  },
+  {
+    code: "PROD-113",
+    name: "Frozen Strawberry Cheesecake Slice",
+    category: "Frozen Items",
+    retailPriceMinor: 550,
+    salePriceMinor: 480,
+    quantity: 28,
+  },
+  {
+    code: "PROD-114",
+    name: "Pure Maple Syrup 250ml",
+    category: "Dry Goods",
+    retailPriceMinor: 1100,
+    salePriceMinor: 950,
+    quantity: 22,
+  },
+  {
+    code: "PROD-115",
+    name: "Premium Roast Coffee Beans 500g",
+    category: "Beverages",
+    retailPriceMinor: 1800,
+    salePriceMinor: 1550,
+    quantity: 40,
+  },
+  {
+    code: "PROD-116",
+    name: "Garlic Herb Cream Cheese 200g",
+    category: "Dairy",
+    retailPriceMinor: 400,
+    salePriceMinor: 350,
+    quantity: 35,
+  },
+  {
+    code: "PROD-117",
+    name: "Frozen French Puff Pastry Sheets",
+    category: "Frozen Items",
+    retailPriceMinor: 700,
+    salePriceMinor: 600,
+    quantity: 50,
+  },
+  {
+    code: "PROD-118",
+    name: "Oatmeal Raisin Cookie Box",
+    category: "Bakery & Pastry",
+    retailPriceMinor: 850,
+    salePriceMinor: 700,
+    quantity: 40,
+  },
+  {
+    code: "PROD-119",
+    name: "Matcha Green Tea Powder 100g",
+    category: "Beverages",
+    retailPriceMinor: 1600,
+    salePriceMinor: 1380,
+    quantity: 18,
+  },
+  {
+    code: "PROD-120",
+    name: "Organic Rolled Oats 1kg",
+    category: "Dry Goods",
+    retailPriceMinor: 650,
+    salePriceMinor: 540,
+    quantity: 65,
+  },
+];

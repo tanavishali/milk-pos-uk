@@ -1,7 +1,5 @@
 import type { Order } from "@app-types/index";
 
-export type Category = string;
-
 /**
  * An order as the store holds it: what was delivered, to whom, by whom.
  *

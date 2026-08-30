@@ -1,9 +1,14 @@
-import type { Customer } from "@app-types/index";
-import { Weekday } from "@enums/index";
+import { Weekday } from '../common/enums';
+import type { Customer } from '../modules/customers/schemas/customer.schema';
 
-export const seedCustomers: Customer[] = [
+/**
+ * The starting customer directory, moved here from
+ * `frontend/services/mock/seed.customers.ts` when the customers API replaced
+ * the in-memory mock.
+ */
+export const SEED_CUSTOMERS: Customer[] = [
   {
-    id: "CUST-101",
+    code: "CUST-101",
     name: "Zainab Ahmed",
     phone: "+92 300 1234567",
     round: "mon-pm-thu-pm",
@@ -14,7 +19,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-102",
+    code: "CUST-102",
     name: "Hamza Malik",
     phone: "+92 321 7654321",
     round: "wed-sat",
@@ -25,7 +30,7 @@ export const seedCustomers: Customer[] = [
     postcode: "44000",
   },
   {
-    id: "CUST-103",
+    code: "CUST-103",
     name: "Ayesha Tariq",
     phone: "+92 333 4567890",
     round: "mon-thu",
@@ -36,7 +41,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-104",
+    code: "CUST-104",
     name: "Bilal Siddiqui",
     phone: "+92 312 9876541",
     round: "tue-fri",
@@ -47,7 +52,7 @@ export const seedCustomers: Customer[] = [
     postcode: "74000",
   },
   {
-    id: "CUST-105",
+    code: "CUST-105",
     name: "Fatima Noor",
     phone: "+92 345 1122334",
     round: "tue-sat-pm",
@@ -58,7 +63,7 @@ export const seedCustomers: Customer[] = [
     postcode: "46000",
   },
   {
-    id: "CUST-106",
+    code: "CUST-106",
     name: "Usman Ghani",
     phone: "+92 301 9988776",
     round: "",
@@ -69,7 +74,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-107",
+    code: "CUST-107",
     name: "Sara Khan",
     phone: "+92 322 3344556",
     round: "mon-pm-thu-pm",
@@ -80,7 +85,7 @@ export const seedCustomers: Customer[] = [
     postcode: "25000",
   },
   {
-    id: "CUST-108",
+    code: "CUST-108",
     name: "Ali Raza",
     phone: "+92 334 6677889",
     round: "wed-sat",
@@ -91,7 +96,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-109",
+    code: "CUST-109",
     name: "Maryam Javed",
     phone: "+92 306 4433221",
     round: "mon-thu",
@@ -102,7 +107,7 @@ export const seedCustomers: Customer[] = [
     postcode: "40100",
   },
   {
-    id: "CUST-110",
+    code: "CUST-110",
     name: "Omer Farooq",
     phone: "+92 315 5566778",
     round: "tue-fri",
@@ -113,7 +118,7 @@ export const seedCustomers: Customer[] = [
     postcode: "46000",
   },
   {
-    id: "CUST-111",
+    code: "CUST-111",
     name: "Hira Mani",
     phone: "+92 302 8877665",
     round: "tue-sat-pm",
@@ -124,7 +129,7 @@ export const seedCustomers: Customer[] = [
     postcode: "74000",
   },
   {
-    id: "CUST-112",
+    code: "CUST-112",
     name: "Saad Rafique",
     phone: "+92 320 2233445",
     round: "",
@@ -135,7 +140,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-113",
+    code: "CUST-113",
     name: "Anum Sheikh",
     phone: "+92 344 7788990",
     round: "mon-pm-thu-pm",
@@ -146,7 +151,7 @@ export const seedCustomers: Customer[] = [
     postcode: "60000",
   },
   {
-    id: "CUST-114",
+    code: "CUST-114",
     name: "Kamran Akmal",
     phone: "+92 331 6655443",
     round: "wed-sat",
@@ -157,7 +162,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-115",
+    code: "CUST-115",
     name: "Mahnoor Baloch",
     phone: "+92 308 3322119",
     round: "mon-thu",
@@ -168,7 +173,7 @@ export const seedCustomers: Customer[] = [
     postcode: "87300",
   },
   {
-    id: "CUST-116",
+    code: "CUST-116",
     name: "Zubair Shah",
     phone: "+92 311 9900112",
     round: "tue-fri",
@@ -179,7 +184,7 @@ export const seedCustomers: Customer[] = [
     postcode: "22010",
   },
   {
-    id: "CUST-117",
+    code: "CUST-117",
     name: "Khadija Bibi",
     phone: "+92 305 4455112",
     round: "tue-sat-pm",
@@ -190,7 +195,7 @@ export const seedCustomers: Customer[] = [
     postcode: "38000",
   },
   {
-    id: "CUST-118",
+    code: "CUST-118",
     name: "Daniyal Qureshi",
     phone: "+92 323 1122889",
     round: "",
@@ -201,7 +206,7 @@ export const seedCustomers: Customer[] = [
     postcode: "74000",
   },
   {
-    id: "CUST-119",
+    code: "CUST-119",
     name: "Rabia Basri",
     phone: "+92 342 9988334",
     round: "mon-pm-thu-pm",
@@ -212,7 +217,7 @@ export const seedCustomers: Customer[] = [
     postcode: "54000",
   },
   {
-    id: "CUST-120",
+    code: "CUST-120",
     name: "Fahad Mustafa",
     phone: "+92 300 7766112",
     round: "wed-sat",

@@ -1,5 +1,6 @@
 import type { Payment, PaymentDraft } from "@app-types/index";
 import { formatTimestamp } from "@utils/helper/index";
+import { findKnownCustomer } from "./knownCustomers";
 import { db } from "./seed";
 import { assertUniqueId, clone, nextId, round2 } from "./utils";
 
@@ -35,7 +36,7 @@ export const paymentsMock = {
   },
 
   create(draft: PaymentDraft): Payment {
-    const customer = db.customers.find((c) => c.id === draft.customerId);
+    const customer = findKnownCustomer(draft.customerId);
     if (!customer) throw new Error(`Customer ${draft.customerId} not found`);
 
     const amount = round2(draft.amount);

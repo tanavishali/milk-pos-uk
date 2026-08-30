@@ -16,7 +16,7 @@ import {
   LuUserX,
   LuUsers,
 } from "react-icons/lu";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Customer } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
 import {
@@ -48,7 +48,7 @@ import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { setViewMode } from "@store/slices/uiSlice";
-import { DELIVERY_ROUNDS, roundLabel } from "@constants/index";
+
 import { cityOf, distinctCount } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
 import { reportError } from "@utils/libs/reportError";
@@ -60,6 +60,7 @@ import {
   useDeleteCustomerMutation,
   useGetCustomersQuery,
 } from "../api/customersApi";
+import { useGetDeliveryRoundsQuery } from "../api/deliveryApi";
 import { CustomerModal } from "./CustomerModal";
 
 export function CustomersView() {
@@ -78,6 +79,18 @@ export function CustomersView() {
     refetch,
   } = useGetCustomersQuery();
   const [deleteCustomer, { isLoading: deleting }] = useDeleteCustomerMutation();
+  const { data: rounds = [] } = useGetDeliveryRoundsQuery();
+
+  /**
+   * Round ids come from `GET /delivery/rounds` now rather than a local
+   * constant. "No round" is a real answer, not a missing one — a walk-in is
+   * on no round — so an unmatched id falls back to it rather than to an empty
+   * cell.
+   */
+  const roundLabel = useCallback(
+    (id: string) => rounds.find((r) => r.id === id)?.label ?? "No round",
+    [rounds],
+  );
 
   const [search, setSearch] = useState("");
   const [round, setRound] = useState("");
@@ -123,7 +136,7 @@ export function CustomersView() {
           (round === "" ||
             (round === "none" ? c.round === "" : c.round === round)),
       ),
-    [customers, search, round],
+    [customers, search, round, roundLabel],
   );
 
   const { pageItems, startIndex, canPrev, canNext, step } =
@@ -227,7 +240,7 @@ export function CustomersView() {
           onChange={(event) => setRound(event.target.value)}
           placeholder="Select Round"
           options={[
-            ...DELIVERY_ROUNDS.map((r) => ({ value: r.id, label: r.label })),
+            ...rounds.map((r) => ({ value: r.id, label: r.label })),
             { value: "none", label: "No round" },
           ]}
           className="w-full sm:w-auto"

@@ -1,11 +1,8 @@
-import type { Courier, Customer, Payment, Product } from "@app-types/index";
-import { seedCategories } from "./seed.categories";
+import type { Courier, Payment } from "@app-types/index";
 import { seedCouriers } from "./seed.couriers";
-import { seedCustomers } from "./seed.customers";
 import { seedOrders } from "./seed.orders";
 import { seedPayments } from "./seed.payments";
-import { seedProducts } from "./seed.products";
-import type { Category, StoredOrder } from "./types";
+import type { StoredOrder } from "./types";
 
 /**
  * The one mutable store every mock domain reads and writes. In-memory: it
@@ -17,9 +14,6 @@ import type { Category, StoredOrder } from "./types";
  * descending, and "the 4 most recent" silently means "the 4 oldest".
  */
 export interface MockDatabase {
-  categories: Category[];
-  customers: Customer[];
-  products: Product[];
   couriers: Courier[];
   orders: StoredOrder[];
   /** Money in, newest-first like `orders`. */
@@ -28,9 +22,6 @@ export interface MockDatabase {
 
 function buildDatabase(): MockDatabase {
   return {
-    categories: [...seedCategories],
-    customers: [...seedCustomers],
-    products: [...seedProducts],
     couriers: [...seedCouriers],
     orders: [...seedOrders].reverse(),
     payments: [...seedPayments].reverse(),
@@ -66,9 +57,6 @@ export const db: MockDatabase = resolveDatabase();
 /** Restore the seed. Used by tests, and available from the console in dev. */
 export function resetDatabase(): void {
   const fresh = buildDatabase();
-  db.categories = fresh.categories;
-  db.customers = fresh.customers;
-  db.products = fresh.products;
   db.couriers = fresh.couriers;
   db.orders = fresh.orders;
   db.payments = fresh.payments;

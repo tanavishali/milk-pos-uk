@@ -2,6 +2,7 @@ import type { DashboardMetrics, Order, OrderDraft } from "@app-types/index";
 import { PaymentStatus } from "@enums/index";
 import { formatTimestamp } from "@utils/helper/index";
 import { paymentsMock } from "./payments.mock";
+import { findKnownCustomer, knownCustomerCount } from "./knownCustomers";
 import { productsMock } from "./products.mock";
 import { db } from "./seed";
 import type { StoredOrder } from "./types";
@@ -137,7 +138,9 @@ export const ordersMock = {
    * ledger's business, not this function's.
    */
   create(draft: OrderDraft): Order {
-    const customer = db.customers.find((c) => c.id === draft.customerId);
+    // Customers moved to the API; this reads the copy `customersApi` leaves
+    // behind, which is populated as soon as the directory has been loaded once.
+    const customer = findKnownCustomer(draft.customerId);
     if (!customer) throw new Error(`Customer ${draft.customerId} not found`);
 
     const lines = draft.items.filter((line) => line.qty > 0);
@@ -234,7 +237,7 @@ export const ordersMock = {
       collected: round2(collected),
       outstanding: round2(billed - collected),
       totalOrders: db.orders.length,
-      totalCustomers: db.customers.length,
+      totalCustomers: knownCustomerCount(),
       totalCouriers: db.couriers.length,
     };
   },

@@ -1,35 +1,39 @@
 import type { Customer, CustomerDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
+import { queryFor, request } from "@services/api/http";
 import { tags } from "@services/api/tags";
-import {
-  READ_FAILURE_MESSAGE,
-  WRITE_LATENCY_MS,
-  delay,
-  mockDb,
-  shouldFailRead,
-} from "@services/mock/index";
+import { setKnownCustomers } from "@services/mock/knownCustomers";
 
 /**
- * Endpoints run through `queryFn` against `mockDb` because there is no backend
- * yet. Swapping in a real API means turning each of these into a `query` — the
- * hooks below, and every call site, stay as they are.
+ * The customer directory, served by the NestJS API.
+ *
+ * `services/mock/customers.mock.ts` and `seed.customers.ts` are gone; the rows
+ * live in MongoDB.
+ *
+ * Each successful read also hands the list to `knownCustomers` — the orders and
+ * payments mocks still need to resolve a customer by id, and they cannot reach
+ * the API themselves. That bridge goes when those endpoints are written.
  */
 export const customersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getCustomers: build.query<Customer[], void>({
-      queryFn: async () => {
-        await delay();
-        if (shouldFailRead()) return { error: READ_FAILURE_MESSAGE };
-        return { data: mockDb.customers.list() };
-      },
+      queryFn: () =>
+        queryFor(async () => {
+          const customers = await request<Customer[]>("/customers");
+          setKnownCustomers(customers);
+          return customers;
+        }),
       providesTags: [tags.Customer],
     }),
 
     createCustomer: build.mutation<Customer, CustomerDraft>({
-      queryFn: async (draft) => {
-        await delay(WRITE_LATENCY_MS);
-        return { data: mockDb.customers.create(draft) };
-      },
+      queryFn: (draft) =>
+        queryFor(() =>
+          request<Customer>("/customers", {
+            method: "POST",
+            body: JSON.stringify(draft),
+          }),
+        ),
       invalidatesTags: [tags.Customer, tags.DashboardMetrics],
     }),
 
@@ -37,18 +41,25 @@ export const customersApi = baseApi.injectEndpoints({
       Customer,
       { id: string; draft: CustomerDraft }
     >({
-      queryFn: async ({ id, draft }) => {
-        await delay(WRITE_LATENCY_MS);
-        return { data: mockDb.customers.update(id, draft) };
-      },
+      queryFn: ({ id, draft }) =>
+        queryFor(() =>
+          request<Customer>(`/customers/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(draft),
+          }),
+        ),
       invalidatesTags: [tags.Customer],
     }),
 
     deleteCustomer: build.mutation<string, string>({
-      queryFn: async (id) => {
-        await delay(WRITE_LATENCY_MS);
-        return { data: mockDb.customers.remove(id) };
-      },
+      queryFn: (id) =>
+        queryFor(async () => {
+          const { id: deleted } = await request<{ id: string }>(
+            `/customers/${id}`,
+            { method: "DELETE" },
+          );
+          return deleted;
+        }),
       invalidatesTags: [tags.Customer, tags.DashboardMetrics],
     }),
   }),

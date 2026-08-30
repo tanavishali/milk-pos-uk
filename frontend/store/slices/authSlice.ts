@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AuthUser } from "@app-types/index";
 import { clearSession, writeSession } from "@features/auth/utils/session";
+import { clearToken } from "@features/auth/utils/token";
 
 interface AuthState {
   user: AuthUser | null;
@@ -33,6 +34,9 @@ const authSlice = createSlice({
     signOut(state) {
       state.user = null;
       clearSession();
+      // The bearer token outlives the session object unless it is cleared with
+      // it, which would leave a signed-out tab holding a working credential.
+      clearToken();
     },
   },
 });

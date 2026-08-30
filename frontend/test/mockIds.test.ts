@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { PaymentStatus } from "@enums/index";
-import { mockDb } from "@services/mock/index";
+import { mockDb, setKnownCustomers } from "@services/mock/index";
 import { db, resetDatabase } from "@services/mock/seed";
 import { assertUniqueId, nextId } from "@services/mock/utils";
 
@@ -57,15 +57,35 @@ describe("assertUniqueId", () => {
 
 describe("mock backend id uniqueness", () => {
   // The store is module state shared across tests.
+  // Products and customers are no longer part of the mock store — both are
+  // served by the API — so they are not snapshotted here.
   const seedSnapshot = {
-    customers: [...db.customers],
-    products: [...db.products],
     couriers: [...db.couriers],
     orders: [...db.orders],
     payments: [...db.payments],
   };
 
-  beforeEach(resetDatabase);
+  /**
+   * Orders resolve their customer through `knownCustomers`, the bridge the
+   * customers API populates at runtime. In a test nothing has fetched, so the
+   * one customer these cases need is registered by hand.
+   */
+  const TEST_CUSTOMER = {
+    id: "CUST-101",
+    name: "Zainab Ahmed",
+    phone: "+92 300 1234567",
+    round: "",
+    deliveryDays: [],
+    email: "zainab.ahmed@gmail.com",
+    area: "Model Town, Lahore",
+    address: "House 42-B, Model Town, Lahore",
+    postcode: "54000",
+  };
+
+  beforeEach(() => {
+    resetDatabase();
+    setKnownCustomers([TEST_CUSTOMER]);
+  });
 
   it("seed data itself has no duplicate ids", () => {
     for (const [name, rows] of Object.entries(seedSnapshot)) {
@@ -83,26 +103,13 @@ describe("mock backend id uniqueness", () => {
     }
   });
 
-  it("creating 200 customers never reuses an id", () => {
-    for (let i = 0; i < 200; i += 1) {
-      mockDb.customers.create({
-        name: `Test ${i}`,
-        phone: "+92 300 0000000",
-        round: "",
-        deliveryDays: [],
-        email: "test@example.com",
-        area: "Nowhere",
-        address: "Nowhere",
-        postcode: "00000",
-      });
-    }
-    const ids = db.customers.map((c) => c.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
+  // "creating 200 customers never reuses an id" lived here. Customer ids are
+  // minted by the backend's atomic counter now, so there is nothing left in
+  // this store to test.
 
   it("survives a reset and still continues the seed numbering", () => {
     const first = mockDb.orders.create({
-      customerId: db.customers[0]!.id,
+      customerId: TEST_CUSTOMER.id,
       courierId: "COUR-101",
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -111,7 +118,7 @@ describe("mock backend id uniqueness", () => {
     resetDatabase();
 
     const afterReset = mockDb.orders.create({
-      customerId: db.customers[0]!.id,
+      customerId: TEST_CUSTOMER.id,
       courierId: "COUR-101",
       items: [{ productId: "PROD-101", name: "x", qty: 1, price: 1 }],
     });
@@ -119,15 +126,14 @@ describe("mock backend id uniqueness", () => {
   });
 
   it("creating 200 orders never reuses an id, seed range included", () => {
-    const product = db.products[0]!;
-    const customer = db.customers[0]!;
+    const customer = TEST_CUSTOMER;
 
     for (let i = 0; i < 200; i += 1) {
       mockDb.orders.create({
         customerId: customer.id,
         courierId: "COUR-101",
         items: [
-          { productId: product.id, name: product.name, qty: 1, price: 1 },
+          { productId: "PROD-101", name: "Seed item", qty: 1, price: 1 },
         ],
       });
     }
@@ -148,7 +154,27 @@ describe("mock backend id uniqueness", () => {
  * the next delivery. Every case below is one of those sentences.
  */
 describe("billing cycle", () => {
-  beforeEach(resetDatabase);
+  /**
+   * Orders resolve their customer through `knownCustomers`, the bridge the
+   * customers API populates at runtime. In a test nothing has fetched, so the
+   * one customer these cases need is registered by hand.
+   */
+  const TEST_CUSTOMER = {
+    id: "CUST-101",
+    name: "Zainab Ahmed",
+    phone: "+92 300 1234567",
+    round: "",
+    deliveryDays: [],
+    email: "zainab.ahmed@gmail.com",
+    area: "Model Town, Lahore",
+    address: "House 42-B, Model Town, Lahore",
+    postcode: "54000",
+  };
+
+  beforeEach(() => {
+    resetDatabase();
+    setKnownCustomers([TEST_CUSTOMER]);
+  });
 
   /** A bill for CUST-101. No payment attached — that is a separate event. */
   const bill = (price: number) =>

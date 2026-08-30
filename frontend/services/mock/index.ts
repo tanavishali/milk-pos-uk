@@ -1,9 +1,7 @@
 import { authMock } from "./auth.mock";
 import { couriersMock } from "./couriers.mock";
-import { customersMock } from "./customers.mock";
 import { ordersMock } from "./orders.mock";
 import { paymentsMock } from "./payments.mock";
-import { categoriesMock, productsMock } from "./products.mock";
 
 /**
  * The flat mock backend. Endpoints talk to this and nothing else, so swapping in
@@ -12,15 +10,17 @@ import { categoriesMock, productsMock } from "./products.mock";
  */
 export const mockDb = {
   auth: authMock,
-  customers: customersMock,
-  products: productsMock,
-  categories: categoriesMock,
   couriers: couriersMock,
   orders: ordersMock,
   payments: paymentsMock,
 };
 
 export type { MockDatabase } from "./seed";
-export type { Category, StoredOrder } from "./types";
+export type { StoredOrder } from "./types";
 export { delay, READ_LATENCY_MS, WRITE_LATENCY_MS } from "./utils";
 export { READ_FAILURE_MESSAGE, setFailReads, shouldFailRead } from "./faults";
+export {
+  findKnownCustomer,
+  knownCustomerCount,
+  setKnownCustomers,
+} from "./knownCustomers";

@@ -3,11 +3,11 @@ export const APP_NAME = "BLANKSYS";
 export const APP_TAGLINE = "Point of Sales";
 
 export const CURRENT_USER = {
-  name: "Jhony Soda",
+  name: "Ada Whitfield",
   role: "Administrator",
   title: "Head Administrator",
   badge: "Super Admin",
-  email: "jhony.soda@blanksys.pos",
+  email: "ada.whitfield@blanksys.pos",
   terminalId: "TERM-BLANK-99",
 } as const;
 
@@ -17,26 +17,37 @@ export const DEFAULT_POS_SETTINGS = {
 } as const;
 
 /**
- * Demo credentials. This is a prototype with no auth backend — the pair is
- * checked in `services/mock/auth.mock.ts` and shown on the login screen on
- * purpose. Delete both the moment a real identity provider is wired in.
+ * Demo credentials, shown on the login screen on purpose.
+ *
+ * These are now real accounts in MongoDB, seeded by the backend's
+ * `npm run seed:users`, and checked by `POST /api/auth/login` against a bcrypt
+ * hash — not by `services/mock/auth.mock.ts`, which sign-in no longer calls.
+ * Change them there and here together, or the card stops working.
+ *
+ * Still demo credentials: printed on a public page, so never reused for
+ * anything that matters.
  */
 export const DEMO_CREDENTIALS = {
-  email: "jhony.soda@blanksys.pos",
-  password: "blanksys123",
+  email: "ada.whitfield@blanksys.pos",
+  password: "Verdant-Meridian-5644",
 } as const;
 
 /**
- * Every seeded courier signs in with this. A real system issues a credential per
- * driver at onboarding; this exists so the driver portal is reachable in a demo
- * without creating an account first.
+ * Fallback password for a courier created through the registry.
+ *
+ * Only the mock still reads this. Real sign-in credentials live in the
+ * backend's `users` collection, so a courier added here cannot sign in until
+ * an account is created for them through the API.
  */
 export const COURIER_DEFAULT_PASSWORD = "driver123";
 
-/** A courier to sign in as, surfaced on the login screen beside the admin pair. */
+/**
+ * A courier to sign in as, surfaced on the login screen beside the admin pair.
+ * Seeded alongside the admin, and scoped to courier `COUR-101`.
+ */
 export const DEMO_COURIER = {
   email: "bilal.khan@blanksys.pos",
-  password: COURIER_DEFAULT_PASSWORD,
+  password: "Cobalt-Pennine-6405",
 } as const;
 
 /** Rows per page in every registry view. */

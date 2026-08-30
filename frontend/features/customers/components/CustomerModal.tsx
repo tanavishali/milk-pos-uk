@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Customer, CustomerDraft } from "@app-types/index";
 import type { Weekday } from "@enums/index";
-import { DELIVERY_ROUNDS, roundById } from "@constants/index";
+
 import { Button } from "@components/ui/buttons";
 import {
   DayPicker,
@@ -16,6 +16,7 @@ import {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
 } from "../api/customersApi";
+import { useGetDeliveryRoundsQuery } from "../api/deliveryApi";
 
 const EMPTY: CustomerDraft = {
   name: "",
@@ -52,6 +53,9 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
   );
   const [createCustomer, createState] = useCreateCustomerMutation();
   const [updateCustomer, updateState] = useUpdateCustomerMutation();
+  // Served by `GET /delivery/rounds`, so the list the form offers and the ids
+  // the API will accept are the same list.
+  const { data: rounds = [] } = useGetDeliveryRoundsQuery();
 
   const saving = createState.isLoading || updateState.isLoading;
 
@@ -72,7 +76,8 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
     setDraft((prev) => ({
       ...prev,
       round,
-      deliveryDays: roundById(round)?.days ?? prev.deliveryDays,
+      deliveryDays:
+        rounds.find((r) => r.id === round)?.days ?? prev.deliveryDays,
     }));
 
   const submit = async () => {
@@ -140,7 +145,7 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
             value={draft.round}
             onChange={(e) => setRound(e.target.value)}
             placeholder="Select Round"
-            options={DELIVERY_ROUNDS.map((r) => ({
+            options={rounds.map((r) => ({
               value: r.id,
               label: r.label,
             }))}
