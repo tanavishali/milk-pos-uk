@@ -13,7 +13,7 @@ import { Modal } from "@components/ui/modals";
 import { Loader } from "@components/ui/states";
 import { PaymentStatus, WEEKDAYS, WEEKDAY_SHORT } from "@enums/index";
 import { APP_NAME, DEFAULT_POS_SETTINGS } from "@constants/index";
-import { formatCurrency } from "@utils/helper/format";
+import { formatCurrency, formatDeliveryDate } from "@utils/helper/format";
 import { cn } from "@utils/libs/cn";
 import { reportError } from "@utils/libs/reportError";
 import { downloadPdf } from "@utils/libs/pdf";
@@ -189,8 +189,15 @@ export function InvoiceModal({
           <p className="text-nano text-foreground-muted">
             Receipt Confirmation
           </p>
+          {/* The day the goods arrive, as the cashier set it — not the minute
+              the bill was raised. A customer reads the date at the top of a
+              docket as "when is this for", and on an order taken Friday for
+              Monday's round those are different days. Falls back to the raised
+              timestamp for bills issued before the date could be chosen. */}
           <p className="text-nano text-foreground-subtle mt-0.5">
-            {order.date}
+            {order.deliveryDate
+              ? formatDeliveryDate(order.deliveryDate)
+              : order.date}
           </p>
         </div>
 
@@ -209,6 +216,16 @@ export function InvoiceModal({
             <div className="flex gap-1">
               <dt className="font-bold">Phone:</dt>
               <dd>{order.customer.phone}</dd>
+            </div>
+          )}
+          {/* The date at the top now states the delivery day, so the office
+              copy keeps the raised timestamp here rather than losing it — the
+              two together are what makes "ordered Friday, delivered Monday"
+              readable. The doorstep slip has no use for it. */}
+          {brief || !order.deliveryDate ? null : (
+            <div className="flex gap-1">
+              <dt className="font-bold">Issued:</dt>
+              <dd>{order.date}</dd>
             </div>
           )}
           {/* The delivery address. Deliberately wraps instead of truncating —

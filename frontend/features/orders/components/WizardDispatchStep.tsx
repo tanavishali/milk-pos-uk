@@ -4,7 +4,7 @@ import type { Courier } from "@app-types/index";
 import { FormField, Select } from "@components/ui/fields";
 import { inputClass } from "@components/ui/fields/inputClass";
 import { WEEKDAY_SHORT } from "@enums/index";
-import { formatCurrency } from "@utils/helper/format";
+import { formatCurrency, formatDeliveryDate } from "@utils/helper/format";
 import { ONE_OFF, type OrderWizardController } from "../hooks/useOrderWizard";
 
 export function WizardDispatchStep({
@@ -28,7 +28,11 @@ export function WizardDispatchStep({
         </p>
       </div>
 
-      <FormField label="Select Delivery Courier" htmlFor="wizard-courier" required>
+      <FormField
+        label="Select Delivery Courier"
+        htmlFor="wizard-courier"
+        required
+      >
         <Select
           id="wizard-courier"
           value={wizard.courierId}
@@ -54,10 +58,26 @@ export function WizardDispatchStep({
           value={wizard.deliveryCharge}
           onChange={(event) => {
             const value = Number.parseFloat(event.target.value);
-            wizard.setDeliveryCharge(Number.isFinite(value) ? Math.max(0, value) : 0);
+            wizard.setDeliveryCharge(
+              Number.isFinite(value) ? Math.max(0, value) : 0,
+            );
           }}
           className={inputClass()}
           placeholder="0.00"
+        />
+      </FormField>
+
+      {/* Defaulted to today and editable, because an order is often taken one
+          day for a round that runs another — Friday's call for Monday's van.
+          It sits under the charge rather than beside the courier so the step
+          reads as one question: what does this trip cost and when does it go. */}
+      <FormField label="Delivery Date" htmlFor="wizard-delivery-date" required>
+        <input
+          id="wizard-delivery-date"
+          type="date"
+          value={wizard.deliveryDate}
+          onChange={(event) => wizard.setDeliveryDate(event.target.value)}
+          className={inputClass()}
         />
       </FormField>
 
@@ -128,6 +148,14 @@ export function WizardDispatchStep({
             <dt className="text-foreground-body">Delivery charge:</dt>
             <dd className="text-foreground font-bold">
               {formatCurrency(wizard.deliveryCharge)}
+            </dd>
+          </div>
+        ) : null}
+        {wizard.deliveryDate ? (
+          <div className="flex justify-between gap-2">
+            <dt className="text-foreground-body">Delivery date:</dt>
+            <dd className="text-foreground font-bold">
+              {formatDeliveryDate(wizard.deliveryDate)}
             </dd>
           </div>
         ) : null}

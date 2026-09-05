@@ -153,6 +153,9 @@ export class OrdersService {
             {
               code,
               date: formatTimestamp(new Date()),
+              // What the caller scheduled, kept apart from `date`: the bill is
+              // stamped when it is raised, the round happens when it happens.
+              ...(dto.deliveryDate ? { deliveryDate: dto.deliveryDate } : {}),
               customerId: customer.id,
               customer: {
                 name: customer.name,

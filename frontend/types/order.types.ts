@@ -49,6 +49,15 @@ export interface Order {
   customerId: string;
   /** `YYYY-MM-DD HH:mm`, matching what the receipt prints. */
   date: string;
+  /**
+   * The day this goes out, `YYYY-MM-DD`, set by whoever raised the bill.
+   *
+   * Separate from `date` because they answer different questions: an order
+   * taken on Friday for Monday's round is stamped Friday and delivered Monday.
+   * Optional — orders raised before the field existed carry none, and the UI
+   * has to read those without inventing a date for them.
+   */
+  deliveryDate?: string;
   customer: OrderCustomer;
   /**
    * Who delivers it. `courier` is the name printed on the receipt; `courierId`
@@ -97,5 +106,7 @@ export interface OrderDraft {
   /** The chosen courier's id; the name is resolved from it server-side. */
   courierId: string;
   deliveryCharge: number;
+  /** `YYYY-MM-DD`. Omitted rather than blank when nothing was scheduled. */
+  deliveryDate?: string;
   items: OrderLine[];
 }

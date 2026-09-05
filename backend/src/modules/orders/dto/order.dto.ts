@@ -43,6 +43,12 @@ export class OrderDto {
   @ApiProperty({ example: '2026-08-21 14:10' })
   date!: string;
 
+  @ApiPropertyOptional({
+    example: '2026-09-08',
+    description: 'The day this goes out, as set when the bill was raised.',
+  })
+  deliveryDate?: string;
+
   @ApiProperty({ type: OrderCustomerDto })
   customer!: OrderCustomerDto;
 
@@ -111,6 +117,10 @@ export class OrderDto {
       id: doc.code,
       customerId: doc.customerId,
       date: doc.date,
+      // Spread rather than a plain assignment: orders raised before this field
+      // existed have none, and an explicit `undefined` would serialise as a key
+      // that is present but empty.
+      ...(doc.deliveryDate ? { deliveryDate: doc.deliveryDate } : {}),
       customer: {
         name: doc.customer.name,
         phone: doc.customer.phone,

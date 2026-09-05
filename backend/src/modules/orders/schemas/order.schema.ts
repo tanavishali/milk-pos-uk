@@ -67,6 +67,18 @@ export class Order {
   @Prop({ required: true })
   date!: string;
 
+  /**
+   * The day this is to be delivered, `YYYY-MM-DD`, chosen by whoever raised the
+   * bill. Distinct from `date`: an order taken on Friday for Monday's round is
+   * a real and common case, and one field cannot answer both "when was this
+   * sold" and "when does it go out".
+   *
+   * Optional because orders raised before this field existed do not have one,
+   * and a required prop would make every one of them unreadable.
+   */
+  @Prop({ required: false })
+  deliveryDate?: string;
+
   /** Kept alongside the copy, so earlier bills can still be found after a rename. */
   @Prop({ required: true, index: true })
   customerId!: string;

@@ -24,6 +24,52 @@ export function formatTimestamp(date: Date): string {
   );
 }
 
+/**
+ * `YYYY-MM-DD` in local time — what an `<input type="date">` reads and writes.
+ *
+ * Built from the local parts rather than `toISOString()`, which converts to UTC
+ * first: east of Greenwich that hands back tomorrow's date late in the evening,
+ * and the round would be scheduled for the wrong day.
+ */
+export function formatDateInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * Whether a string is a calendar date the API will accept — the same shape the
+ * backend's `@Matches` on `deliveryDate` enforces.
+ *
+ * Named and exported rather than inlined at the one call site so the rule has a
+ * single home: a date the wizard waves through and the server rejects fails at
+ * the worst possible moment, after the cashier has finished the order.
+ */
+export function isDeliveryDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/**
+ * `Mon 8 Sep 2026` from a `YYYY-MM-DD` string — the weekday is the point, since
+ * a round is planned in days of the week.
+ *
+ * Parsed by hand rather than through `new Date(string)`, which reads a bare
+ * `YYYY-MM-DD` as UTC midnight and so shows the day before in any negative
+ * offset. Returns the input untouched if it is not a date, so a receipt never
+ * prints "Invalid Date".
+ */
+export function formatDeliveryDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return date.toLocaleDateString("en-IE", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** "JS" from "Jhony Soda" â€” at most two letters, for avatar chips. */
 export function initials(name: string): string {
   return name

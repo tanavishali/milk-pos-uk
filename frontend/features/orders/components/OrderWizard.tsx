@@ -51,7 +51,8 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
     const customerArea = wizard.customer.area.trim().toLowerCase();
     const matchingCourier = couriers.find(
       (courier) =>
-        courier.area.trim().toLowerCase() === customerArea && courier.area.trim(),
+        courier.area.trim().toLowerCase() === customerArea &&
+        courier.area.trim(),
     );
 
     if (matchingCourier) {
@@ -114,6 +115,9 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
         customerId: wizard.customer.id,
         courierId: wizard.courierId,
         deliveryCharge: wizard.deliveryCharge,
+        // Omitted rather than sent blank: the API takes a date or no key at
+        // all, and "" is neither.
+        ...(wizard.deliveryDate ? { deliveryDate: wizard.deliveryDate } : {}),
         items: wizard.orderLines,
       }).unwrap();
 

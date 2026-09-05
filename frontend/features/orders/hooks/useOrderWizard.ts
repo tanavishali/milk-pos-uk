@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { Customer, OrderLine, Product } from "@app-types/index";
 import { WEEKDAYS, Weekday, WizardStep } from "@enums/index";
+import { formatDateInput, isDeliveryDate } from "@utils/helper/format";
 
 /**
  * Which delivery slot a cart line belongs to.
@@ -53,6 +54,12 @@ export function useOrderWizard() {
   const [cart, setCart] = useState<Cart>({});
   const [courierId, setCourierId] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
+  // Today, because that is what most orders are. Read once per mount rather
+  // than per render: a wizard left open across midnight should keep the date
+  // the cashier saw when they started, not silently roll over under them.
+  const [deliveryDate, setDeliveryDate] = useState(() =>
+    formatDateInput(new Date()),
+  );
   const [error, setError] = useState<string | undefined>();
   const [requestedDay, setRequestedDay] = useState<DayKey | undefined>();
   // Most deliveries are paid at the door, so that is the default. The previous
@@ -96,6 +103,7 @@ export function useOrderWizard() {
     setCart({});
     setCourierId("");
     setDeliveryCharge(0);
+    setDeliveryDate(formatDateInput(new Date()));
     setError(undefined);
     setRequestedDay(undefined);
     setBillPaid(true);
@@ -112,7 +120,8 @@ export function useOrderWizard() {
   );
 
   const total = useMemo(
-    () => activeLines.reduce((sum, l) => sum + l.qty * l.price, 0) + deliveryCharge,
+    () =>
+      activeLines.reduce((sum, l) => sum + l.qty * l.price, 0) + deliveryCharge,
     [activeLines, deliveryCharge],
   );
 
@@ -238,6 +247,13 @@ export function useOrderWizard() {
         setError("Choose a courier to continue.");
         return false;
       }
+      // A cleared date box is not a choice to leave it unscheduled — it is a
+      // half-typed field. The driver's list and the docket both read this, so
+      // it is checked here rather than discovered at the door.
+      if (!isDeliveryDate(deliveryDate)) {
+        setError("Set the delivery date to continue.");
+        return false;
+      }
       setError(undefined);
       setStep(WizardStep.Balance);
       return false;
@@ -245,7 +261,14 @@ export function useOrderWizard() {
 
     // Step 4 — the caller issues the order.
     return true;
-  }, [step, customer, activeLines.length, days.length, courierId]);
+  }, [
+    step,
+    customer,
+    activeLines.length,
+    days.length,
+    courierId,
+    deliveryDate,
+  ]);
 
   const back = useCallback(() => {
     setError(undefined);
@@ -283,6 +306,8 @@ export function useOrderWizard() {
     setCourierId,
     deliveryCharge,
     setDeliveryCharge,
+    deliveryDate,
+    setDeliveryDate,
     billPaid,
     setBillPaid,
     clearPrevious,

@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   Min,
   MinLength,
@@ -72,6 +73,18 @@ export class CreateOrderDto {
   @Min(0)
   @Max(1_000_000)
   deliveryCharge?: number;
+
+  @ApiPropertyOptional({
+    example: '2026-09-08',
+    description:
+      'The day this order goes out, YYYY-MM-DD. Omit to leave it unscheduled — an order taken today for next Monday needs to say so.',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'deliveryDate must be a calendar date in YYYY-MM-DD form.',
+  })
+  deliveryDate?: string;
 
   @ApiProperty({ type: [CreateOrderLineDto] })
   @IsArray()

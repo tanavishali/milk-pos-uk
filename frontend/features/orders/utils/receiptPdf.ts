@@ -6,7 +6,7 @@ import {
   WEEKDAY_SHORT,
   type Weekday,
 } from "@enums/index";
-import { formatCurrency } from "@utils/helper/format";
+import { formatCurrency, formatDeliveryDate } from "@utils/helper/format";
 import { PdfPage, buildPdf, monoWidth, rgb } from "@utils/libs/pdf";
 
 const PAGE_WIDTH = 420; // A5 width in points — fits an A4 sheet two-up
@@ -51,6 +51,48 @@ function groupsFor(order: Order): Group[] {
     : dated;
 }
 
+/**
+ * The rows above the items, in print order. Built once and shared by `measure`
+ * and the draw pass — two lists that had to agree on how many rows there are
+ * would drift the moment either grew a field.
+ */
+/**
+ * The date printed in the brand band: the day it is delivered, which is what
+ * the customer is reading the docket for. Only an order raised before the field
+ * existed falls back to its raised timestamp.
+ */
+function headerDate(order: Order): string {
+  return order.deliveryDate
+    ? formatDeliveryDate(order.deliveryDate)
+    : order.date;
+}
+
+function metaFor(order: Order, brief: boolean): [string, string][] {
+  const address: [string, string] = [
+    "Address",
+    [order.customer.address, order.customer.postcode]
+      .filter(Boolean)
+      .join(", "),
+  ];
+  // The band already carries the delivery day, so the office copy keeps the
+  // raised timestamp instead of repeating it. The brief slip drops both.
+  const issued: [string, string][] = order.deliveryDate
+    ? [["Issued", order.date]]
+    : [];
+
+  return brief
+    ? [["Customer", order.customer.name], address]
+    : [
+        ["Customer", order.customer.name],
+        ["Phone", order.customer.phone],
+        address,
+        ...issued,
+        ["Round", roundLabel(order.customer.round)],
+        ["Courier", order.courier],
+        ["Status", order.status],
+      ];
+}
+
 /** Greedy wrap against the mono metrics, so nothing overruns its column. */
 function wrapMono(text: string, maxWidth: number, size: number): string[] {
   const out: string[] = [];
@@ -78,8 +120,7 @@ function measure(order: Order, brief: boolean): number {
   const grouped = groups.length > 1 || groups[0]?.day !== undefined;
 
   let h = 88 + 16; // brand band + gap
-  // Two meta rows on the brief slip (customer, address), six on the office copy.
-  h += (brief ? 2 : 6) * 15 + 18;
+  h += metaFor(order, brief).length * 15 + 18;
   if (!brief) {
     h += 22; // table head
     for (const group of groups) {
@@ -132,7 +173,7 @@ export function buildReceiptPdf(
       color: WHITE,
     });
   }
-  page.textRight(order.date, RIGHT, brief ? 50 : 64, {
+  page.textRight(headerDate(order), RIGHT, brief ? 50 : 64, {
     size: 8,
     font: "mono",
     color: WHITE,
@@ -140,23 +181,7 @@ export function buildReceiptPdf(
 
   // ── Transaction details ─────────────────────────────────────────────
   let y = 122;
-  const address: [string, string] = [
-    "Address",
-    [order.customer.address, order.customer.postcode]
-      .filter(Boolean)
-      .join(", "),
-  ];
-  const meta: [string, string][] = brief
-    ? [["Customer", order.customer.name], address]
-    : [
-        ["Customer", order.customer.name],
-        ["Phone", order.customer.phone],
-        address,
-        ["Round", roundLabel(order.customer.round)],
-        ["Courier", order.courier],
-        ["Status", order.status],
-      ];
-  for (const [label, value] of meta) {
+  for (const [label, value] of metaFor(order, brief)) {
     page.text(label.toUpperCase(), MARGIN, y, { size: 6.5, color: MUTED });
     page.text(value, MARGIN + 62, y, {
       size: 8.5,
