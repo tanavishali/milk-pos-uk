@@ -35,6 +35,14 @@ const totalUnits = (order: Order) =>
   order.items.reduce((sum, line) => sum + line.qty, 0);
 
 /**
+ * Taking money at the door is switched off for now. The dialog and its wiring
+ * stay put — this is the one line to flip when couriers are to collect again,
+ * and it closes both ways in: the button on the card and the Collect action in
+ * the receipt.
+ */
+const COLLECTION_ENABLED: boolean = false;
+
+/**
  * A driver's own round. Read-only: a courier can see what to deliver, to whom,
  * where, and whether to collect — but cannot edit an order or reach the
  * registries.
@@ -58,11 +66,28 @@ export function MyDeliveriesView() {
   } = useGetMyDeliveriesQuery(courierId, { skip: !courierId });
 
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<"" | PaymentStatus>("");
+  const [area, setArea] = useState("");
   // Ids rather than rows — see the note in OrdersView: collecting at the door
   // changes what the receipt beside it should say.
   const [receiptId, setReceiptId] = useState<string | undefined>();
   const [collectingId, setCollectingId] = useState<string | undefined>();
+
+  /**
+   * The patches this driver actually has doors on today, not every area on the
+   * books — a courier filtering by a part of town they were never sent to would
+   * only ever empty the list.
+   */
+  const areas = useMemo(
+    () =>
+      [
+        ...new Set(
+          deliveries.map((order) => order.customer.area).filter(Boolean),
+        ),
+      ]
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => ({ value: name, label: name })),
+    [deliveries],
+  );
 
   const filtered = useMemo(
     () =>
@@ -73,12 +98,13 @@ export function MyDeliveriesView() {
             order.id,
             order.customer.name,
             order.customer.phone,
+            order.customer.area,
             order.customer.address,
             order.customer.postcode,
           ) &&
-          (!status || order.status === status),
+          (!area || order.customer.area === area),
       ),
-    [deliveries, search, status],
+    [deliveries, search, area],
   );
 
   const receipt = deliveries.find((order) => order.id === receiptId);
@@ -145,18 +171,14 @@ export function MyDeliveriesView() {
           placeholder="Search customer, phone, address..."
           className="w-full sm:max-w-xs"
         />
+        {/* The round's one filter. A courier narrows by where they are driving,
+            not by who has paid — the money is on every card already. */}
         <Select
-          aria-label="Filter by payment status"
-          value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as "" | PaymentStatus)
-          }
-          placeholder="All Statuses"
-          options={[
-            { value: PaymentStatus.Unpaid, label: "Collect on delivery" },
-            { value: PaymentStatus.Partial, label: "Part paid" },
-            { value: PaymentStatus.Paid, label: "Settled" },
-          ]}
+          aria-label="Filter by delivery area"
+          value={area}
+          onChange={(event) => setArea(event.target.value)}
+          placeholder="All Areas"
+          options={areas}
           className="w-full sm:w-auto"
         />
       </div>
@@ -296,6 +318,7 @@ export function MyDeliveriesView() {
                       label: "Collect",
                       icon: LuHandCoins,
                       tone: "info",
+                      disabled: !COLLECTION_ENABLED,
                       onClick: () => setCollectingId(order.id),
                     },
                   ]}
@@ -309,10 +332,17 @@ export function MyDeliveriesView() {
       {receipt ? (
         <InvoiceModal
           order={receipt}
-          onCollect={() => {
-            setCollectingId(receipt.id);
-            setReceiptId(undefined);
-          }}
+          // The doorstep copy: who it is for, where it goes, what is in the
+          // crate, and what it comes to — the account lines stay in the office.
+          variant="brief"
+          onCollect={
+            COLLECTION_ENABLED
+              ? () => {
+                  setCollectingId(receipt.id);
+                  setReceiptId(undefined);
+                }
+              : undefined
+          }
           onClose={() => setReceiptId(undefined)}
         />
       ) : null}

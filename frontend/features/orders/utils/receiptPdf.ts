@@ -25,6 +25,15 @@ const COL_QTY = RIGHT - 150;
 const COL_PRICE = RIGHT - 78;
 const COL_TOTAL = RIGHT;
 
+/**
+ * `brief` is the doorstep slip — customer, address, the goods, and the total.
+ * The office copy keeps the rest: the transaction id, the phone, the round, the
+ * courier, the status, and the running account lines.
+ */
+export interface ReceiptOptions {
+  brief?: boolean;
+}
+
 interface Group {
   day: Weekday | undefined;
   lines: Order["items"];
@@ -64,23 +73,28 @@ function wrapMono(text: string, maxWidth: number, size: number): string[] {
  * the receipt needs. A fixed page would either clip a long order or leave half a
  * sheet of white space under a short one.
  */
-function measure(order: Order): number {
+function measure(order: Order, brief: boolean): number {
   const groups = groupsFor(order);
   const grouped = groups.length > 1 || groups[0]?.day !== undefined;
 
   let h = 88 + 16; // brand band + gap
-  h += 6 * 15 + 18; // six meta rows + gap
-  h += 22; // table head
-  for (const group of groups) {
-    if (grouped) h += 18;
-    for (const line of group.lines) {
-      h += 14 * wrapMono(line.name, COL_QTY - MARGIN - 8, 8).length;
+  // Two meta rows on the brief slip (customer, address), six on the office copy.
+  h += (brief ? 2 : 6) * 15 + 18;
+  if (!brief) {
+    h += 22; // table head
+    for (const group of groups) {
+      if (grouped) h += 18;
+      for (const line of group.lines) {
+        h += 14 * wrapMono(line.name, COL_QTY - MARGIN - 8, 8).length;
+      }
+      if (grouped) h += 16;
     }
-    if (grouped) h += 16;
   }
-  h += 14 + 5 * 17 + 12; // totals block, including received + balance
+  h += brief
+    ? 14 + (order.previousBalance > 0 ? 3 : 2) * 15 + 26 + 20 // rule, bill + charge (+ old debt), total band
+    : 14 + 5 * 17 + 12; // totals block, including received + balance
   h += 34; // footer
-  return Math.max(h, 340);
+  return Math.max(h, brief ? 300 : 340);
 }
 
 /**
@@ -90,8 +104,11 @@ function measure(order: Order): number {
  * Amounts and item names are set in Courier so every column can be aligned
  * exactly — Courier is the one built-in font whose widths need no metrics table.
  */
-export function buildReceiptPdf(order: Order): string {
-  const page = new PdfPage(PAGE_WIDTH, measure(order));
+export function buildReceiptPdf(
+  order: Order,
+  { brief = false }: ReceiptOptions = {},
+): string {
+  const page = new PdfPage(PAGE_WIDTH, measure(order, brief));
   const groups = groupsFor(order);
   const grouped = groups.length > 1 || groups[0]?.day !== undefined;
 
@@ -108,12 +125,14 @@ export function buildReceiptPdf(order: Order): string {
     font: "monoBold",
     color: WHITE,
   });
-  page.textRight(order.id, RIGHT, 48, {
-    size: 13,
-    font: "monoBold",
-    color: WHITE,
-  });
-  page.textRight(order.date, RIGHT, 64, {
+  if (!brief) {
+    page.textRight(order.id, RIGHT, 48, {
+      size: 13,
+      font: "monoBold",
+      color: WHITE,
+    });
+  }
+  page.textRight(order.date, RIGHT, brief ? 50 : 64, {
     size: 8,
     font: "mono",
     color: WHITE,
@@ -121,19 +140,22 @@ export function buildReceiptPdf(order: Order): string {
 
   // ── Transaction details ─────────────────────────────────────────────
   let y = 122;
-  const meta: [string, string][] = [
-    ["Customer", order.customer.name],
-    ["Phone", order.customer.phone],
-    [
-      "Address",
-      [order.customer.address, order.customer.postcode]
-        .filter(Boolean)
-        .join(", "),
-    ],
-    ["Round", roundLabel(order.customer.round)],
-    ["Courier", order.courier],
-    ["Status", order.status],
+  const address: [string, string] = [
+    "Address",
+    [order.customer.address, order.customer.postcode]
+      .filter(Boolean)
+      .join(", "),
   ];
+  const meta: [string, string][] = brief
+    ? [["Customer", order.customer.name], address]
+    : [
+        ["Customer", order.customer.name],
+        ["Phone", order.customer.phone],
+        address,
+        ["Round", roundLabel(order.customer.round)],
+        ["Courier", order.courier],
+        ["Status", order.status],
+      ];
   for (const [label, value] of meta) {
     page.text(label.toUpperCase(), MARGIN, y, { size: 6.5, color: MUTED });
     page.text(value, MARGIN + 62, y, {
@@ -146,123 +168,181 @@ export function buildReceiptPdf(order: Order): string {
   }
 
   // ── Items ───────────────────────────────────────────────────────────
-  y += 4;
-  page.line(MARGIN, y, RIGHT, FAINT);
-  y += 12;
-  page.text("ITEM", MARGIN, y, { size: 6.5, color: MUTED });
-  page.textRight("QTY", COL_QTY, y, { size: 6.5, color: MUTED });
-  page.textRight("PRICE", COL_PRICE, y, { size: 6.5, color: MUTED });
-  page.textRight("TOTAL", COL_TOTAL, y, { size: 6.5, color: MUTED });
-  y += 6;
-  page.line(MARGIN, y, RIGHT, FAINT);
-  y += 14;
+  // Only on the office copy. The doorstep slip states the money; the lines
+  // behind it are the shop's own record.
+  if (!brief) {
+    y += 4;
+    page.line(MARGIN, y, RIGHT, FAINT);
+    y += 12;
+    page.text("ITEM", MARGIN, y, { size: 6.5, color: MUTED });
+    page.textRight("QTY", COL_QTY, y, { size: 6.5, color: MUTED });
+    page.textRight("PRICE", COL_PRICE, y, { size: 6.5, color: MUTED });
+    page.textRight("TOTAL", COL_TOTAL, y, { size: 6.5, color: MUTED });
+    y += 6;
+    page.line(MARGIN, y, RIGHT, FAINT);
+    y += 14;
 
-  for (const group of groups) {
-    if (grouped) {
-      page.text(
-        group.day ? WEEKDAY_SHORT[group.day].toUpperCase() : "ONE-OFF",
-        MARGIN,
-        y,
-        { size: 7.5, font: "bold", color: ACCENT },
-      );
-      y += 14;
-    }
-
-    for (const line of group.lines) {
-      const wrapped = wrapMono(line.name, COL_QTY - MARGIN - 8, 8);
-      wrapped.forEach((text, i) => {
-        page.text(text, MARGIN, y, { size: 8, font: "mono", color: INK });
-        // Figures sit on the first line of a wrapped name, not the last.
-        if (i === 0) {
-          page.textRight(String(line.qty), COL_QTY, y, { size: 8 });
-          page.textRight(formatCurrency(line.price), COL_PRICE, y, { size: 8 });
-          page.textRight(formatCurrency(line.qty * line.price), COL_TOTAL, y, {
-            size: 8,
-            font: "monoBold",
-          });
-        }
+    for (const group of groups) {
+      if (grouped) {
+        page.text(
+          group.day ? WEEKDAY_SHORT[group.day].toUpperCase() : "ONE-OFF",
+          MARGIN,
+          y,
+          { size: 7.5, font: "bold", color: ACCENT },
+        );
         y += 14;
-      });
-    }
+      }
 
-    if (grouped) {
-      const subtotal = group.lines.reduce((n, l) => n + l.qty * l.price, 0);
-      page.text(
-        `${group.day ? WEEKDAY_SHORT[group.day] : "One-off"} subtotal`,
-        MARGIN + 8,
-        y,
-        { size: 7.5, color: MUTED },
-      );
-      page.textRight(formatCurrency(subtotal), COL_TOTAL, y, {
-        size: 8,
-        font: "monoBold",
-        color: MUTED,
-      });
-      y += 16;
+      for (const line of group.lines) {
+        const wrapped = wrapMono(line.name, COL_QTY - MARGIN - 8, 8);
+        wrapped.forEach((text, i) => {
+          page.text(text, MARGIN, y, { size: 8, font: "mono", color: INK });
+          // Figures sit on the first line of a wrapped name, not the last.
+          if (i === 0) {
+            page.textRight(String(line.qty), COL_QTY, y, { size: 8 });
+            page.textRight(formatCurrency(line.price), COL_PRICE, y, {
+              size: 8,
+            });
+            page.textRight(
+              formatCurrency(line.qty * line.price),
+              COL_TOTAL,
+              y,
+              {
+                size: 8,
+                font: "monoBold",
+              },
+            );
+          }
+          y += 14;
+        });
+      }
+
+      if (grouped) {
+        const subtotal = group.lines.reduce((n, l) => n + l.qty * l.price, 0);
+        page.text(
+          `${group.day ? WEEKDAY_SHORT[group.day] : "One-off"} subtotal`,
+          MARGIN + 8,
+          y,
+          { size: 7.5, color: MUTED },
+        );
+        page.textRight(formatCurrency(subtotal), COL_TOTAL, y, {
+          size: 8,
+          font: "monoBold",
+          color: MUTED,
+        });
+        y += 16;
+      }
     }
   }
 
   // ── Money ───────────────────────────────────────────────────────────
   page.line(MARGIN, y, RIGHT, FAINT);
   y += 16;
-  if (order.deliveryCharge > 0) {
-    page.text("Delivery charge", MARGIN, y, { size: 8.5, color: MUTED });
-    page.textRight(formatCurrency(order.deliveryCharge), COL_TOTAL, y, {
-      size: 9,
-      color: MUTED,
-    });
+
+  if (brief) {
+    page.text("Bill", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(
+      formatCurrency(order.total - order.deliveryCharge),
+      COL_TOTAL,
+      y,
+      { size: 9 },
+    );
     y += 15;
-  }
-  page.text("This delivery", MARGIN, y, { size: 8.5, color: MUTED });
-  page.textRight(formatCurrency(order.total), COL_TOTAL, y, { size: 9 });
-  y += 15;
-  page.text("Previous balance", MARGIN, y, { size: 8.5, color: MUTED });
-  page.textRight(
-    order.previousBalance > 0 ? formatCurrency(order.previousBalance) : "NIL",
-    COL_TOTAL,
-    y,
-    { size: 9, color: order.previousBalance > 0 ? WARN : MUTED },
-  );
-  y += 8;
-
-  // The one figure that must not be missed gets its own band.
-  page.rect(MARGIN, y, RIGHT - MARGIN, 26, ACCENT);
-  page.text("TOTAL DUE", MARGIN + 10, y + 17, {
-    size: 9,
-    font: "bold",
-    color: WHITE,
-  });
-  page.textRight(formatCurrency(order.grandTotal), RIGHT - 10, y + 17.5, {
-    size: 12,
-    font: "monoBold",
-    color: WHITE,
-  });
-  y += 26 + 16;
-
-  // What was handed over at this door, and what is left on the account. The
-  // customer keeps this slip, so the carry-forward has to be on it in writing.
-  page.text("Received", MARGIN, y, { size: 8.5, color: MUTED });
-  page.textRight(
-    order.receivedAtDelivery > 0
-      ? formatCurrency(order.receivedAtDelivery)
-      : "NIL",
-    COL_TOTAL,
-    y,
-    { size: 9, color: order.receivedAtDelivery > 0 ? ACCENT : MUTED },
-  );
-  y += 15;
-  page.text("Balance now", MARGIN, y, { size: 8.5, font: "bold", color: INK });
-  page.textRight(
-    order.customerBalance > 0 ? formatCurrency(order.customerBalance) : "NIL",
-    COL_TOTAL,
-    y,
-    {
+    page.text("Delivery charge", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(
+      order.deliveryCharge > 0 ? formatCurrency(order.deliveryCharge) : "NIL",
+      COL_TOTAL,
+      y,
+      { size: 9, color: MUTED },
+    );
+    y += 15;
+    // Named, not folded in: a total larger than the crate at the door has to
+    // say which part of it is last week's.
+    if (order.previousBalance > 0) {
+      page.text("Previous balance", MARGIN, y, { size: 8.5, color: MUTED });
+      page.textRight(formatCurrency(order.previousBalance), COL_TOTAL, y, {
+        size: 9,
+        color: WARN,
+      });
+      y += 15;
+    }
+    y -= 8;
+    page.rect(MARGIN, y, RIGHT - MARGIN, 26, ACCENT);
+    page.text("TOTAL BILL", MARGIN + 10, y + 17, {
       size: 9,
+      font: "bold",
+      color: WHITE,
+    });
+    page.textRight(formatCurrency(order.grandTotal), RIGHT - 10, y + 17.5, {
+      size: 12,
       font: "monoBold",
-      color: order.customerBalance > 0 ? WARN : MUTED,
-    },
-  );
-  y += 24;
+      color: WHITE,
+    });
+    y += 26 + 20;
+  } else {
+    if (order.deliveryCharge > 0) {
+      page.text("Delivery charge", MARGIN, y, { size: 8.5, color: MUTED });
+      page.textRight(formatCurrency(order.deliveryCharge), COL_TOTAL, y, {
+        size: 9,
+        color: MUTED,
+      });
+      y += 15;
+    }
+    page.text("This delivery", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(formatCurrency(order.total), COL_TOTAL, y, { size: 9 });
+    y += 15;
+    page.text("Previous balance", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(
+      order.previousBalance > 0 ? formatCurrency(order.previousBalance) : "NIL",
+      COL_TOTAL,
+      y,
+      { size: 9, color: order.previousBalance > 0 ? WARN : MUTED },
+    );
+    y += 8;
+
+    // The one figure that must not be missed gets its own band.
+    page.rect(MARGIN, y, RIGHT - MARGIN, 26, ACCENT);
+    page.text("TOTAL DUE", MARGIN + 10, y + 17, {
+      size: 9,
+      font: "bold",
+      color: WHITE,
+    });
+    page.textRight(formatCurrency(order.grandTotal), RIGHT - 10, y + 17.5, {
+      size: 12,
+      font: "monoBold",
+      color: WHITE,
+    });
+    y += 26 + 16;
+
+    // What was handed over at this door, and what is left on the account. The
+    // customer keeps this slip, so the carry-forward has to be on it in writing.
+    page.text("Received", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(
+      order.receivedAtDelivery > 0
+        ? formatCurrency(order.receivedAtDelivery)
+        : "NIL",
+      COL_TOTAL,
+      y,
+      { size: 9, color: order.receivedAtDelivery > 0 ? ACCENT : MUTED },
+    );
+    y += 15;
+    page.text("Balance now", MARGIN, y, {
+      size: 8.5,
+      font: "bold",
+      color: INK,
+    });
+    page.textRight(
+      order.customerBalance > 0 ? formatCurrency(order.customerBalance) : "NIL",
+      COL_TOTAL,
+      y,
+      {
+        size: 9,
+        font: "monoBold",
+        color: order.customerBalance > 0 ? WARN : MUTED,
+      },
+    );
+    y += 24;
+  }
 
   page.text(DEFAULT_POS_SETTINGS.receiptNote, MARGIN, y, {
     size: 7.5,

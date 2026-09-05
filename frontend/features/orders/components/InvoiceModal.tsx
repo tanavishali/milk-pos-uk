@@ -23,6 +23,14 @@ interface InvoiceModalProps {
   order: Order;
   /** Opens the collection dialog — the driver's next action at the door. */
   onCollect?: () => void;
+  /**
+   * `brief` is the doorstep slip: who it is for, where it goes, what is in the
+   * crate, and what it comes to. The account lines — phone, courier, status,
+   * previous balance, what was received, what is still owed — belong to the
+   * office copy and are left off, so the customer is handed one figure to read
+   * rather than a ledger to argue with.
+   */
+  variant?: "full" | "brief";
   onClose: () => void;
 }
 
@@ -62,7 +70,13 @@ const saveStates: Record<
   },
 };
 
-export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
+export function InvoiceModal({
+  order,
+  onCollect,
+  variant = "full",
+  onClose,
+}: InvoiceModalProps) {
+  const brief = variant === "brief";
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const state = saveStates[saveState];
 
@@ -76,7 +90,7 @@ export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
     // show that anything happened.
     window.setTimeout(() => {
       try {
-        downloadPdf(receiptFilename(order), buildReceiptPdf(order));
+        downloadPdf(receiptFilename(order), buildReceiptPdf(order, { brief }));
         // Confirms the click landed — a browser download gives no visible
         // feedback of its own when it goes straight to the downloads folder.
         setSaveState("saved");
@@ -181,18 +195,22 @@ export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
         </div>
 
         <dl className="text-micro space-y-0.5">
-          <div className="flex gap-1">
-            <dt className="font-bold">TXN:</dt>
-            <dd>{order.id}</dd>
-          </div>
+          {brief ? null : (
+            <div className="flex gap-1">
+              <dt className="font-bold">TXN:</dt>
+              <dd>{order.id}</dd>
+            </div>
+          )}
           <div className="flex gap-1">
             <dt className="font-bold">Customer:</dt>
             <dd className="truncate">{order.customer.name}</dd>
           </div>
-          <div className="flex gap-1">
-            <dt className="font-bold">Phone:</dt>
-            <dd>{order.customer.phone}</dd>
-          </div>
+          {brief ? null : (
+            <div className="flex gap-1">
+              <dt className="font-bold">Phone:</dt>
+              <dd>{order.customer.phone}</dd>
+            </div>
+          )}
           {/* The delivery address. Deliberately wraps instead of truncating —
               this is the line the courier drives to, so a clipped address is a
               failed delivery. */}
@@ -203,136 +221,179 @@ export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
               {order.customer.postcode ? ` — ${order.customer.postcode}` : ""}
             </dd>
           </div>
-          <div className="flex gap-1">
-            <dt className="font-bold">Courier:</dt>
-            <dd className="truncate">{order.courier}</dd>
-          </div>
-          <div className="flex gap-1">
-            <dt className="font-bold">Status:</dt>
-            <dd
-              className={cn(
-                "font-bold",
-                order.status === PaymentStatus.Paid
-                  ? "text-success-text"
-                  : "text-warning-text",
-              )}
-            >
-              {order.status}
-            </dd>
-          </div>
+          {brief ? null : (
+            <>
+              <div className="flex gap-1">
+                <dt className="font-bold">Courier:</dt>
+                <dd className="truncate">{order.courier}</dd>
+              </div>
+              <div className="flex gap-1">
+                <dt className="font-bold">Status:</dt>
+                <dd
+                  className={cn(
+                    "font-bold",
+                    order.status === PaymentStatus.Paid
+                      ? "text-success-text"
+                      : "text-warning-text",
+                  )}
+                >
+                  {order.status}
+                </dd>
+              </div>
+            </>
+          )}
         </dl>
 
-        <table className="border-border text-micro w-full border-t border-b border-dashed py-1">
-          <thead>
-            <tr className="text-foreground-body text-left">
-              <th scope="col" className="py-0.5 font-bold">
-                Item
-              </th>
-              <th scope="col" className="py-0.5 text-center font-bold">
-                Qty
-              </th>
-              <th scope="col" className="py-0.5 text-right font-bold">
-                Price
-              </th>
-              <th scope="col" className="py-0.5 text-right font-bold">
-                Total
-              </th>
-            </tr>
-          </thead>
-          {groups.map((group) => (
-            <tbody
-              key={group.day ?? "once"}
-              className="divide-border-subtle divide-y"
-            >
-              {/* A day heading only when there is more than one thing to
-                  separate — a single-day receipt does not need a label. */}
-              {grouped ? (
-                <tr>
-                  <th
-                    scope="colgroup"
-                    colSpan={4}
-                    className="text-foreground-strong pt-1.5 pb-0.5 text-left font-bold uppercase"
-                  >
-                    {group.day ? WEEKDAY_SHORT[group.day] : "One-off"}
-                  </th>
-                </tr>
-              ) : null}
-              {group.lines.map((line) => (
-                // Keyed by day and product: the same item can appear on two
-                // days, and a bare productId would collide.
-                <tr key={`${group.day ?? "once"}-${line.productId}`}>
-                  <td className="py-0.5 pr-1">{line.name}</td>
-                  <td className="py-0.5 text-center">{line.qty}</td>
-                  <td className="py-0.5 text-right">
-                    {formatCurrency(line.price)}
-                  </td>
-                  <td className="py-0.5 text-right">
-                    {formatCurrency(line.qty * line.price)}
-                  </td>
-                </tr>
-              ))}
-              {grouped ? (
-                <tr>
-                  <td colSpan={3} className="py-0.5 text-right font-bold">
-                    {group.day ? WEEKDAY_SHORT[group.day] : "One-off"} subtotal
-                  </td>
-                  <td className="py-0.5 text-right font-bold">
-                    {formatCurrency(
-                      group.lines.reduce((n, l) => n + l.qty * l.price, 0),
-                    )}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          ))}
-        </table>
+        {/* The lines behind the bill are the office's business — the slip the
+            customer is handed states the money, not the picking list. */}
+        {brief ? null : (
+          <table className="border-border text-micro w-full border-t border-b border-dashed py-1">
+            <thead>
+              <tr className="text-foreground-body text-left">
+                <th scope="col" className="py-0.5 font-bold">
+                  Item
+                </th>
+                <th scope="col" className="py-0.5 text-center font-bold">
+                  Qty
+                </th>
+                <th scope="col" className="py-0.5 text-right font-bold">
+                  Price
+                </th>
+                <th scope="col" className="py-0.5 text-right font-bold">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            {groups.map((group) => (
+              <tbody
+                key={group.day ?? "once"}
+                className="divide-border-subtle divide-y"
+              >
+                {/* A day heading only when there is more than one thing to
+                    separate — a single-day receipt does not need a label. */}
+                {grouped ? (
+                  <tr>
+                    <th
+                      scope="colgroup"
+                      colSpan={4}
+                      className="text-foreground-strong pt-1.5 pb-0.5 text-left font-bold uppercase"
+                    >
+                      {group.day ? WEEKDAY_SHORT[group.day] : "One-off"}
+                    </th>
+                  </tr>
+                ) : null}
+                {group.lines.map((line) => (
+                  // Keyed by day and product: the same item can appear on two
+                  // days, and a bare productId would collide.
+                  <tr key={`${group.day ?? "once"}-${line.productId}`}>
+                    <td className="py-0.5 pr-1">{line.name}</td>
+                    <td className="py-0.5 text-center">{line.qty}</td>
+                    <td className="py-0.5 text-right">
+                      {formatCurrency(line.price)}
+                    </td>
+                    <td className="py-0.5 text-right">
+                      {formatCurrency(line.qty * line.price)}
+                    </td>
+                  </tr>
+                ))}
+                {grouped ? (
+                  <tr>
+                    <td colSpan={3} className="py-0.5 text-right font-bold">
+                      {group.day ? WEEKDAY_SHORT[group.day] : "One-off"}{" "}
+                      subtotal
+                    </td>
+                    <td className="py-0.5 text-right font-bold">
+                      {formatCurrency(
+                        group.lines.reduce((n, l) => n + l.qty * l.price, 0),
+                      )}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            ))}
+          </table>
+        )}
 
-        {/* Five lines, the shape a round docket has always had: what was
-            delivered, what was already owed, what that comes to, what the
-            customer handed over, and what is still on the account. A single
-            "total" would hide which part of it is an old debt. */}
-        <div className="space-y-0.5 pt-0.5">
-          {order.deliveryCharge > 0 ? (
+        {brief ? (
+          /* No picking list: what the goods came to, what the run cost, what was
+             already owed, and the one figure the customer is being asked for.
+             The old debt is named rather than folded in — a customer handed a
+             total larger than the crate in front of them will ask why, and the
+             line answers before they have to. */
+          <div className="border-border space-y-0.5 border-t border-dashed pt-1.5">
+            <div className="flex items-center justify-between">
+              <span>Bill:</span>
+              <span>{formatCurrency(order.total - order.deliveryCharge)}</span>
+            </div>
             <div className="flex items-center justify-between">
               <span>Delivery charge:</span>
-              <span>{formatCurrency(order.deliveryCharge)}</span>
+              <span>
+                {order.deliveryCharge > 0
+                  ? formatCurrency(order.deliveryCharge)
+                  : "NIL"}
+              </span>
             </div>
-          ) : null}
-          <div className="flex items-center justify-between">
-            <span>This delivery:</span>
-            <span>{formatCurrency(order.total)}</span>
+            {order.previousBalance > 0 ? (
+              <div className="flex items-center justify-between">
+                <span>Previous balance:</span>
+                <span>{formatCurrency(order.previousBalance)}</span>
+              </div>
+            ) : null}
+            {/* `grandTotal` already carries the old debt; with nothing owed it
+                is exactly this delivery, so the one line serves both doors. */}
+            <div className="border-border flex items-center justify-between border-t border-dashed pt-1 text-xs font-black">
+              <span>TOTAL BILL:</span>
+              <span>{formatCurrency(order.grandTotal)}</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span>Previous balance:</span>
-            <span>
-              {order.previousBalance > 0
-                ? formatCurrency(order.previousBalance)
-                : "NIL"}
-            </span>
+        ) : (
+          /* Five lines, the shape a round docket has always had: what was
+             delivered, what was already owed, what that comes to, what the
+             customer handed over, and what is still on the account. A single
+             "total" would hide which part of it is an old debt. */
+          <div className="space-y-0.5 pt-0.5">
+            {order.deliveryCharge > 0 ? (
+              <div className="flex items-center justify-between">
+                <span>Delivery charge:</span>
+                <span>{formatCurrency(order.deliveryCharge)}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between">
+              <span>This delivery:</span>
+              <span>{formatCurrency(order.total)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Previous balance:</span>
+              <span>
+                {order.previousBalance > 0
+                  ? formatCurrency(order.previousBalance)
+                  : "NIL"}
+              </span>
+            </div>
+            <div className="border-border flex items-center justify-between border-t border-dashed pt-1 text-xs font-black">
+              <span>TOTAL DUE:</span>
+              <span>{formatCurrency(order.grandTotal)}</span>
+            </div>
+            <div className="flex items-center justify-between pt-0.5">
+              <span>Received:</span>
+              <span>
+                {order.receivedAtDelivery > 0
+                  ? formatCurrency(order.receivedAtDelivery)
+                  : "NIL"}
+              </span>
+            </div>
+            {/* The account balance as it stands now, not as it stood when this
+                printed — a reprint should tell the truth about today. */}
+            <div className="flex items-center justify-between font-bold">
+              <span>Balance now:</span>
+              <span>
+                {order.customerBalance > 0
+                  ? formatCurrency(order.customerBalance)
+                  : "NIL"}
+              </span>
+            </div>
           </div>
-          <div className="border-border flex items-center justify-between border-t border-dashed pt-1 text-xs font-black">
-            <span>TOTAL DUE:</span>
-            <span>{formatCurrency(order.grandTotal)}</span>
-          </div>
-          <div className="flex items-center justify-between pt-0.5">
-            <span>Received:</span>
-            <span>
-              {order.receivedAtDelivery > 0
-                ? formatCurrency(order.receivedAtDelivery)
-                : "NIL"}
-            </span>
-          </div>
-          {/* The account balance as it stands now, not as it stood when this
-              printed — a reprint should tell the truth about today. */}
-          <div className="flex items-center justify-between font-bold">
-            <span>Balance now:</span>
-            <span>
-              {order.customerBalance > 0
-                ? formatCurrency(order.customerBalance)
-                : "NIL"}
-            </span>
-          </div>
-        </div>
+        )}
 
         <p className="text-nano text-foreground-subtle border-border border-t border-dashed pt-1.5 text-center">
           {DEFAULT_POS_SETTINGS.receiptNote}

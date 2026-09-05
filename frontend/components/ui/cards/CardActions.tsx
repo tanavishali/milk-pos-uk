@@ -22,6 +22,13 @@ export interface CardAction {
   icon: IconType;
   onClick: () => void;
   tone?: Tone;
+  /**
+   * Greyed and unclickable, but still in the row. An action that vanishes takes
+   * its own explanation with it — the card silently grows a different set of
+   * buttons and nobody can tell whether the thing is gone or just not available
+   * here.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -41,10 +48,15 @@ export function CardActions({ actions }: { actions: CardAction[] }) {
             key={action.label}
             type="button"
             onClick={action.onClick}
+            disabled={action.disabled}
             className={cn(
               "text-foreground-muted flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-bold transition-colors",
               "focus-visible:ring-accent-ring focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none",
-              tones[action.tone ?? "neutral"],
+              // No hover tone once it is off: colour on hover would promise a
+              // press that never lands.
+              action.disabled
+                ? "text-foreground-subtle cursor-not-allowed opacity-50"
+                : tones[action.tone ?? "neutral"],
             )}
           >
             <Icon className="h-3.5 w-3.5" aria-hidden />
