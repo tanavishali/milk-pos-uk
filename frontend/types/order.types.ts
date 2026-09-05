@@ -58,7 +58,9 @@ export interface Order {
   courier: string;
   courierId: string;
   items: OrderLine[];
-  /** The goods on this delivery. This is the only figure that adds to a debt. */
+  /** Delivery charge applied to this order. */
+  deliveryCharge: number;
+  /** The goods on this delivery, including the delivery charge. */
   total: number;
   /**
    * What the customer already owed when this bill was raised — a snapshot for
@@ -94,5 +96,6 @@ export interface OrderDraft {
   customerId: string;
   /** The chosen courier's id; the name is resolved from it server-side. */
   courierId: string;
+  deliveryCharge: number;
   items: OrderLine[];
 }

@@ -136,10 +136,10 @@ export class OrdersService {
       ...(line.day ? { day: line.day } : {}),
     }));
 
-    const totalMinor = items.reduce(
-      (sum, line) => sum + line.qty * line.priceMinor,
-      0,
-    );
+    const deliveryChargeMinor = toMinorUnits(dto.deliveryCharge ?? 0);
+    const totalMinor =
+      items.reduce((sum, line) => sum + line.qty * line.priceMinor, 0) +
+      deliveryChargeMinor;
 
     const code = await this.sequence.next('TRX');
     const session = await this.connection.startSession();
@@ -165,6 +165,7 @@ export class OrdersService {
               courier: courier?.name ?? 'Unassigned',
               courierId: courier?.id ?? '',
               items,
+              deliveryChargeMinor,
               totalMinor,
               previousBalanceMinor,
               grandTotalMinor: totalMinor + previousBalanceMinor,

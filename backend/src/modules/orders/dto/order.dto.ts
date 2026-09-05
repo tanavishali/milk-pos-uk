@@ -56,8 +56,14 @@ export class OrderDto {
   items!: OrderLineDto[];
 
   @ApiProperty({
+    example: 4.5,
+    description: 'Delivery charge added to this order.',
+  })
+  deliveryCharge!: number;
+
+  @ApiProperty({
     example: 32.1,
-    description: 'The goods on this delivery. The only figure that adds to a debt.',
+    description: 'The goods on this delivery, including any delivery charge.',
   })
   total!: number;
 
@@ -122,6 +128,7 @@ export class OrderDto {
         price: fromMinorUnits(line.priceMinor),
         ...(line.day ? { day: line.day } : {}),
       })),
+      deliveryCharge: fromMinorUnits(doc.deliveryChargeMinor ?? 0),
       total: fromMinorUnits(doc.totalMinor),
       previousBalance: fromMinorUnits(doc.previousBalanceMinor),
       grandTotal: fromMinorUnits(doc.grandTotalMinor),

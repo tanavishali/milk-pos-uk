@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { Order } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
 import { Modal } from "@components/ui/modals";
@@ -43,6 +44,20 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
   const products = productsQuery.data ?? [];
   const categories = categoriesQuery.data ?? [];
   const couriers = couriersQuery.data ?? [];
+
+  useEffect(() => {
+    if (!wizard.customer || wizard.courierId) return;
+
+    const customerArea = wizard.customer.area.trim().toLowerCase();
+    const matchingCourier = couriers.find(
+      (courier) =>
+        courier.area.trim().toLowerCase() === customerArea && courier.area.trim(),
+    );
+
+    if (matchingCourier) {
+      wizard.setCourierId(matchingCourier.id);
+    }
+  }, [couriers, wizard]);
 
   // A wizard backed by empty lists looks like an empty catalogue, so a failed
   // read has to say so — otherwise a cashier concludes there is no stock.
@@ -98,6 +113,7 @@ export function OrderWizard({ onClose, onIssued }: OrderWizardProps) {
       const order = await createOrder({
         customerId: wizard.customer.id,
         courierId: wizard.courierId,
+        deliveryCharge: wizard.deliveryCharge,
         items: wizard.orderLines,
       }).unwrap();
 

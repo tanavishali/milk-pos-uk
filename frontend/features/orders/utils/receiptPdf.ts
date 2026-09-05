@@ -205,6 +205,14 @@ export function buildReceiptPdf(order: Order): string {
   // ── Money ───────────────────────────────────────────────────────────
   page.line(MARGIN, y, RIGHT, FAINT);
   y += 16;
+  if (order.deliveryCharge > 0) {
+    page.text("Delivery charge", MARGIN, y, { size: 8.5, color: MUTED });
+    page.textRight(formatCurrency(order.deliveryCharge), COL_TOTAL, y, {
+      size: 9,
+      color: MUTED,
+    });
+    y += 15;
+  }
   page.text("This delivery", MARGIN, y, { size: 8.5, color: MUTED });
   page.textRight(formatCurrency(order.total), COL_TOTAL, y, { size: 9 });
   y += 15;

@@ -2,6 +2,7 @@
 
 import type { Courier } from "@app-types/index";
 import { FormField, Select } from "@components/ui/fields";
+import { inputClass } from "@components/ui/fields/inputClass";
 import { WEEKDAY_SHORT } from "@enums/index";
 import { formatCurrency } from "@utils/helper/format";
 import { ONE_OFF, type OrderWizardController } from "../hooks/useOrderWizard";
@@ -41,6 +42,22 @@ export function WizardDispatchStep({
             value: c.id,
             label: `${c.name} (${c.phone})`,
           }))}
+        />
+      </FormField>
+
+      <FormField label="Delivery Charge" htmlFor="wizard-delivery-charge">
+        <input
+          id="wizard-delivery-charge"
+          type="number"
+          min="0"
+          step="0.01"
+          value={wizard.deliveryCharge}
+          onChange={(event) => {
+            const value = Number.parseFloat(event.target.value);
+            wizard.setDeliveryCharge(Number.isFinite(value) ? Math.max(0, value) : 0);
+          }}
+          className={inputClass()}
+          placeholder="0.00"
         />
       </FormField>
 
@@ -103,6 +120,14 @@ export function WizardDispatchStep({
             <dd className="text-foreground font-bold">
               {wizard.buckets.filter((b) => b.lines.length > 0).length} of{" "}
               {wizard.days.length}
+            </dd>
+          </div>
+        ) : null}
+        {wizard.deliveryCharge > 0 ? (
+          <div className="flex justify-between gap-2">
+            <dt className="text-foreground-body">Delivery charge:</dt>
+            <dd className="text-foreground font-bold">
+              {formatCurrency(wizard.deliveryCharge)}
             </dd>
           </div>
         ) : null}

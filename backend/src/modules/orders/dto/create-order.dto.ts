@@ -63,6 +63,16 @@ export class CreateOrderDto {
   @IsString()
   courierId!: string;
 
+  @ApiProperty({
+    example: 4.5,
+    default: 0,
+    description: 'Delivery fee charged for this order, in pounds.',
+  })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1_000_000)
+  deliveryCharge?: number;
+
   @ApiProperty({ type: [CreateOrderLineDto] })
   @IsArray()
   @ArrayMinSize(1, { message: 'An order needs at least one line.' })

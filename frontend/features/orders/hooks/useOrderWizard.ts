@@ -52,6 +52,7 @@ export function useOrderWizard() {
   const [customer, setCustomerState] = useState<Customer | undefined>();
   const [cart, setCart] = useState<Cart>({});
   const [courierId, setCourierId] = useState("");
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [error, setError] = useState<string | undefined>();
   const [requestedDay, setRequestedDay] = useState<DayKey | undefined>();
   // Most deliveries are paid at the door, so that is the default. The previous
@@ -94,6 +95,7 @@ export function useOrderWizard() {
     setCustomerState(undefined);
     setCart({});
     setCourierId("");
+    setDeliveryCharge(0);
     setError(undefined);
     setRequestedDay(undefined);
     setBillPaid(true);
@@ -110,8 +112,8 @@ export function useOrderWizard() {
   );
 
   const total = useMemo(
-    () => activeLines.reduce((sum, l) => sum + l.qty * l.price, 0),
-    [activeLines],
+    () => activeLines.reduce((sum, l) => sum + l.qty * l.price, 0) + deliveryCharge,
+    [activeLines, deliveryCharge],
   );
 
   const itemCount = useMemo(
@@ -279,6 +281,8 @@ export function useOrderWizard() {
     buckets,
     courierId,
     setCourierId,
+    deliveryCharge,
+    setDeliveryCharge,
     billPaid,
     setBillPaid,
     clearPrevious,

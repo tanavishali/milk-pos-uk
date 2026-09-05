@@ -292,6 +292,12 @@ export function InvoiceModal({ order, onCollect, onClose }: InvoiceModalProps) {
             customer handed over, and what is still on the account. A single
             "total" would hide which part of it is an old debt. */}
         <div className="space-y-0.5 pt-0.5">
+          {order.deliveryCharge > 0 ? (
+            <div className="flex items-center justify-between">
+              <span>Delivery charge:</span>
+              <span>{formatCurrency(order.deliveryCharge)}</span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between">
             <span>This delivery:</span>
             <span>{formatCurrency(order.total)}</span>

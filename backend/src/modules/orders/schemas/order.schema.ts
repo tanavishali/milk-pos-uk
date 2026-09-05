@@ -90,6 +90,10 @@ export class Order {
   @Prop({ type: [OrderLineSchema], required: true })
   items!: OrderLine[];
 
+  /** Delivery fee charged for this trip, in pence. Included in the order total. */
+  @Prop({ required: false, min: 0, default: 0 })
+  deliveryChargeMinor?: number;
+
   /** The goods on **this** delivery, in pence. The only figure that adds to a debt. */
   @Prop({ required: true, min: 0 })
   totalMinor!: number;
