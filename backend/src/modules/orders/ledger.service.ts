@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PaymentStatus } from '../../common/enums';
-import { PaymentsService } from '../payments/payments.service';
+import type { PaymentDocument } from '../payments/schemas/payment.schema';
 import type { OrderDocument } from './schemas/order.schema';
 
-/**
- * What the ledger works out for one customer, computed once and reused across
- * every order of theirs in a batch.
- */
-export interface CustomerLedger {
-  /** Pence of each bill's own total that the ledger covers, keyed by order id. */
-  coveredByOrder: Map<string, number>;
-  /** Everything owed right now, in pence. */
-  balanceMinor: number;
-}
+/** The fields the allocation actually reads off a bill. */
+export type LedgerBill = Pick<OrderDocument, 'code' | 'totalMinor' | 'createdAt'>;
+
+/** The fields the allocation actually reads off a payment. */
+export type LedgerPayment = Pick<
+  PaymentDocument,
+  'amountMinor' | 'appliesTo' | 'createdAt'
+>;
 
 /**
  * The money model.
@@ -26,11 +24,16 @@ export interface CustomerLedger {
  * Nothing here is stored. The same bill is Unpaid on Monday and Paid on
  * Saturday without anything about the bill changing, and a stored copy would be
  * a second truth waiting to drift — plus a migration every time cash landed.
+ *
+ * **Nothing here touches the database either.** Every method is a pure function
+ * over rows the caller has already fetched. That is deliberate: the allocation
+ * is per customer, so a service that fetched its own payments would issue one
+ * query per customer in any list — the N+1 this class used to be the source
+ * of. Handing it the rows lets `OrdersService` load a whole page’s worth in a
+ * single query, and makes the arithmetic testable with no stub at all.
  */
 @Injectable()
 export class LedgerService {
-  constructor(private readonly payments: PaymentsService) {}
-
   /**
    * Spread what a customer has paid across their bills, oldest first.
    *
@@ -47,11 +50,16 @@ export class LedgerService {
    *
    * Overflow from a named payment — more money than that bill was worth —
    * falls back into rule 2 rather than disappearing.
+   *
+   * Both arguments are sorted here rather than trusted from the caller. The
+   * query already returns them in order, but the allocation is only correct in
+   * that order, and a sort over one customer’s rows costs nothing next to
+   * being silently wrong if a caller ever passes them another way.
    */
-  async allocate(
-    customerId: string,
-    bills: OrderDocument[],
-  ): Promise<Map<string, number>> {
+  allocate(
+    payments: readonly LedgerPayment[],
+    bills: readonly LedgerBill[],
+  ): Map<string, number> {
     /**
      * Oldest first — the order money has to be applied in, and the whole of
      * rule 2.
@@ -66,15 +74,20 @@ export class LedgerService {
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     );
 
+    const inOrderTaken = [...payments].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+
     const covered = new Map<string, number>();
     for (const bill of ordered) covered.set(bill.code, 0);
 
+    /** Code to bill, so a named payment is a lookup and not a scan per row. */
+    const byCode = new Map(ordered.map((bill) => [bill.code, bill]));
+
     let pool = 0;
 
-    for (const payment of await this.payments.ledgerRowsFor(customerId)) {
-      const target = payment.appliesTo
-        ? ordered.find((bill) => bill.code === payment.appliesTo)
-        : undefined;
+    for (const payment of inOrderTaken) {
+      const target = payment.appliesTo ? byCode.get(payment.appliesTo) : undefined;
 
       if (!target) {
         pool += payment.amountMinor;
@@ -105,7 +118,7 @@ export class LedgerService {
    * here would charge the same money again every time it appeared on a later
    * receipt, so the debt would compound each week it rolled forward.
    */
-  balanceMinor(bills: OrderDocument[], paidMinor: number): number {
+  balanceMinor(bills: readonly LedgerBill[], paidMinor: number): number {
     const billed = bills.reduce((sum, bill) => sum + bill.totalMinor, 0);
     return billed - paidMinor;
   }

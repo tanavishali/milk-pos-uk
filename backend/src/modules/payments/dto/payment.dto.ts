@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { fromMinorUnits } from '../../../common/utils/money';
-import type { PaymentDocument } from '../schemas/payment.schema';
+import type { Payment } from '../schemas/payment.schema';
 
 /** Field for field the frontend's `Payment` type. */
 export class PaymentDto {
@@ -31,7 +31,12 @@ export class PaymentDto {
   @ApiProperty({ example: 'Bilal Khan' })
   receivedBy!: string;
 
-  static from(doc: PaymentDocument): PaymentDto {
+/**
+   * The stored shape rather than the hydrated document: every read path is
+   * `.lean()`, and this mapper only ever reads fields. A `PaymentDocument` still
+   * satisfies it, so the write paths pass one straight through.
+   */
+  static from(doc: Payment): PaymentDto {
     return {
       id: doc.code,
       customerId: doc.customerId,

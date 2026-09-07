@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Weekday } from '../../../common/enums';
-import type { CustomerDocument } from '../schemas/customer.schema';
+import type { Customer } from '../schemas/customer.schema';
 
 /** Field for field what the frontend's `Customer` type expects. */
 export class CustomerDto {
@@ -31,7 +31,12 @@ export class CustomerDto {
   @ApiProperty({ example: '54000' })
   postcode!: string;
 
-  static from(doc: CustomerDocument): CustomerDto {
+/**
+   * The stored shape rather than the hydrated document: every read path is
+   * `.lean()`, and this mapper only ever reads fields. A `CustomerDocument` still
+   * satisfies it, so the write paths pass one straight through.
+   */
+  static from(doc: Customer): CustomerDto {
     return {
       id: doc.code,
       name: doc.name,

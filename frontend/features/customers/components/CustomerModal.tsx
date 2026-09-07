@@ -8,6 +8,7 @@ import { Button } from "@components/ui/buttons";
 import {
   DayPicker,
   FormField,
+  PhoneInput,
   Select,
   inputClass,
 } from "@components/ui/fields";
@@ -127,14 +128,14 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
           />
         </FormField>
 
+        {/* Stored as `+44 …`: the dial code is part of the number the driver
+            dials, not a display flourish. */}
         <FormField label="Phone Number" htmlFor="cust-phone" required>
-          <input
+          <PhoneInput
             id="cust-phone"
-            type="tel"
             required
             value={draft.phone}
-            onChange={(e) => set("phone", e.target.value)}
-            className={inputClass()}
+            onChange={(value) => set("phone", value)}
           />
         </FormField>
 

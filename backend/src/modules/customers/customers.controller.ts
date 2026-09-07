@@ -6,15 +6,23 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiPageResponse } from '../../common/decorators/api-page-response.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { PageDto } from '../../common/dto/page.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { UserRole } from '../../common/enums';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CustomerDto } from './dto/customer.dto';
@@ -22,6 +30,15 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @ApiTags('customers')
 @Controller('customers')
+/**
+ * The directory is names, phone numbers, addresses and email for every customer
+ * on the round — the single most sensitive collection in the system. A driver
+ * gets the doorstep details they need on their own orders, which carry a copy;
+ * nobody needs the whole book but the terminal.
+ */
+@Roles(UserRole.Admin)
+@ApiBearerAuth('access-token')
+@ApiForbiddenResponse({ description: 'Admin only.' })
 @ApiParam({
   name: 'id',
   required: false,
@@ -32,10 +49,10 @@ export class CustomersController {
   constructor(private readonly customers: CustomersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'The whole directory, newest first' })
-  @ApiOkResponse({ type: [CustomerDto] })
-  list(): Promise<CustomerDto[]> {
-    return this.customers.list();
+  @ApiOperation({ summary: 'The directory, newest first' })
+  @ApiPageResponse(CustomerDto)
+  list(@Query() query: PaginationQueryDto): Promise<PageDto<CustomerDto>> {
+    return this.customers.list(query);
   }
 
   @Get(':id')

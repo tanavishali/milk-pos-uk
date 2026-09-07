@@ -1,5 +1,14 @@
 import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums';
 import { OrderDto } from '../orders/dto/order.dto';
 import { DashboardMetricsDto } from './dto/dashboard.dto';
 import { DashboardOverviewDto } from './dto/overview.dto';
@@ -7,6 +16,10 @@ import { DashboardService } from './dashboard.service';
 
 @ApiTags('dashboard')
 @Controller('dashboard')
+/** Whole-business financials: takings, debtors, stock. Admin only, all of it. */
+@Roles(UserRole.Admin)
+@ApiBearerAuth('access-token')
+@ApiForbiddenResponse({ description: 'Admin only.' })
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 

@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
+import { PageDto } from '../../common/dto/page.dto';
+import {
+  PaginationQueryDto,
+  resolvePaging,
+} from '../../common/dto/pagination-query.dto';
 import { SequenceService } from '../../database/sequence.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CustomerDto } from './dto/customer.dto';
@@ -13,16 +19,46 @@ export class CustomersService {
     @InjectModel(Customer.name)
     private readonly customers: Model<CustomerDocument>,
     private readonly sequence: SequenceService,
+    private readonly config: ConfigService,
   ) {}
 
   /** Newest first, so a record just added is on the page being looked at. */
-  async list(): Promise<CustomerDto[]> {
-    const rows = await this.customers.find().sort({ createdAt: -1 });
-    return rows.map((row) => CustomerDto.from(row));
+  async list(query: PaginationQueryDto = {}): Promise<PageDto<CustomerDto>> {
+    const paging = resolvePaging(query, this.config.getOrThrow('pagination'));
+
+    /**
+     * `estimatedDocumentCount` reads collection metadata rather than walking
+     * an index, which is what keeps the count constant-time as the round grows.
+     *
+     * The count and the page are issued together: neither depends on the
+     * other, so awaiting them in sequence would add a round trip for nothing.
+     */
+    const [rows, total] = await Promise.all([
+      this.customers
+        .find()
+        .sort({ createdAt: -1 })
+        .skip(paging.skip)
+        .limit(paging.limit)
+        /** Read-only: the DTO reads fields, so hydration is pure overhead. */
+        .lean<Customer[]>(),
+      this.customers.estimatedDocumentCount(),
+    ]);
+
+    return PageDto.of(
+      rows.map((row) => CustomerDto.from(row)),
+      total,
+      paging,
+    );
   }
 
   async findOne(code: string): Promise<CustomerDto> {
-    return CustomerDto.from(await this.require(code));
+    const customer = await this.customers.findOne({ code }).lean<Customer>();
+
+    if (!customer) {
+      throw new NotFoundException(`Customer ${code} not found.`);
+    }
+
+    return CustomerDto.from(customer);
   }
 
   async create(dto: CreateCustomerDto): Promise<CustomerDto> {

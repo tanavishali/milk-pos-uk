@@ -1,6 +1,6 @@
 import type { Customer, CustomerDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 /**
@@ -12,7 +12,7 @@ import { tags } from "@services/api/tags";
 export const customersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getCustomers: build.query<Customer[], void>({
-      queryFn: () => queryFor(() => request<Customer[]>("/customers")),
+      queryFn: () => queryFor(() => requestAll<Customer>("/customers")),
       providesTags: [tags.Customer],
     }),
 

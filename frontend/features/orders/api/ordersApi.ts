@@ -1,6 +1,6 @@
 import type { Order, OrderDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 /**
@@ -13,7 +13,7 @@ import { tags } from "@services/api/tags";
 export const ordersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getOrders: build.query<Order[], void>({
-      queryFn: () => queryFor(() => request<Order[]>("/orders")),
+      queryFn: () => queryFor(() => requestAll<Order>("/orders")),
       providesTags: [tags.Order, tags.Payment],
     }),
 

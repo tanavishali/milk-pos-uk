@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Max,
   Min,
@@ -60,6 +61,64 @@ export class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   JWT_EXPIRES_IN!: string;
+
+  /**
+   * Everything below is optional and defaulted in `configuration.ts`.
+   *
+   * They are still declared here so that a *present* value is validated: a
+   * typo'd `RATE_LIMIT_COUNT=1oo` should stop the boot, not silently fall back
+   * to the default and leave the deployment running limits nobody chose.
+   */
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1_000)
+  RATE_LIMIT_TTL_MS?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  RATE_LIMIT_COUNT?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1_000)
+  AUTH_RATE_LIMIT_TTL_MS?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  AUTH_RATE_LIMIT_COUNT?: number;
+
+  /** Proxy hops in front of this process. 0 is a direct connection. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  TRUST_PROXY_HOPS?: number;
+
+  /** A `bytes` string: `256kb`, `1mb`. */
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  BODY_LIMIT?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  PAGE_DEFAULT_LIMIT?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  PAGE_MAX_LIMIT?: number;
 }
 
 /**

@@ -13,7 +13,7 @@ export type CategoryDocument = HydratedDocument<Category>;
  */
 @Schema({ collection: 'categories', timestamps: true })
 export class Category {
-  @Prop({ required: true, unique: true, trim: true, index: true })
+  @Prop({ required: true, unique: true, trim: true })
   name!: string;
 }
 

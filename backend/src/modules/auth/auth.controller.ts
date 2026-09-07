@@ -1,15 +1,20 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SkipAudit } from '../../common/decorators/skip-audit.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums';
 import { AuthService, type JwtPayload } from './auth.service';
 import { AuthResponseDto, AuthUserDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
@@ -21,18 +26,45 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
+  /**
+   * **Admins only.** The body names its own `role`, so an open registration
+   * endpoint is a self-service route to an admin account — anyone who could
+   * reach the API could mint one. Accounts are created by an existing admin,
+   * and the first one comes from `npm run seed:users`.
+   */
+  @Roles(UserRole.Admin)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Create an account',
     description:
-      'Works for both roles — `role` decides which. Returns a token, so a new account is signed in immediately.',
+      'Admins only — the body chooses its own `role`, so this cannot be open. Works for both roles; returns a token for the new account.',
   })
   @ApiCreatedResponse({ type: AuthResponseDto })
   @ApiConflictResponse({ description: 'That email is already registered.' })
+  @ApiUnauthorizedResponse({ description: 'Missing, expired or invalid token.' })
+  @ApiForbiddenResponse({ description: 'Only an admin can create accounts.' })
   register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     return this.auth.register(dto);
   }
 
   @Post('login')
+  /** The one route that cannot require a token: it is where tokens come from. */
+  @Public()
+  /**
+   * The strict limiter, by name.
+   *
+   * An unauthenticated caller is keyed on their address here, and ten attempts
+   * a quarter hour is the difference between a person who mistyped a generated
+   * password and a script working through a list. The general limit of a few
+   * hundred a minute would let a password list through in an afternoon.
+   */
+  @Throttle({ auth: {} })
+  /**
+   * Not audited. A successful sign-in every morning from every device is noise
+   * that buries the trail; the interesting half is failures, and those are
+   * better served by the limiter above than by a row per attempt.
+   */
+  @SkipAudit()
   /** 200, not 201: signing in creates a session, not a resource. */
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -50,7 +82,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  /** No `@Roles()`: any signed-in account may read its own record. */
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'The signed-in account',

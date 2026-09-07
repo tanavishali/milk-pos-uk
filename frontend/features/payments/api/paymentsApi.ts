@@ -1,6 +1,6 @@
 import type { Payment, PaymentDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 export const paymentsApi = baseApi.injectEndpoints({
@@ -9,7 +9,7 @@ export const paymentsApi = baseApi.injectEndpoints({
     getPayments: build.query<Payment[], string>({
       queryFn: (customerId) =>
         queryFor(() =>
-          request<Payment[]>(
+          requestAll<Payment>(
             `/payments?customerId=${encodeURIComponent(customerId)}`,
           ),
         ),

@@ -3,7 +3,6 @@ import { PaymentStatus } from '../src/common/enums';
 import { toMinorUnits } from '../src/common/utils/money';
 import { LedgerService } from '../src/modules/orders/ledger.service';
 import type { OrderDocument } from '../src/modules/orders/schemas/order.schema';
-import type { PaymentsService } from '../src/modules/payments/payments.service';
 import type { PaymentDocument } from '../src/modules/payments/schemas/payment.schema';
 
 /**
@@ -14,10 +13,11 @@ import type { PaymentDocument } from '../src/modules/payments/schemas/payment.sc
  * not change, so neither did these cases — they are the specification for
  * `LedgerService`, and they are here because that is where the logic is now.
  *
- * These are unit tests over the arithmetic: no database, no HTTP. A stub stands
- * in for `PaymentsService`, and `raise()` reproduces exactly what
- * `OrdersService.create` does with the balance — snapshot it, never re-charge
- * it.
+ * These are unit tests over the arithmetic: no database, no HTTP, and no stub
+ * either — `LedgerService` is a pure function over rows the caller supplies,
+ * so the harness just hands it the arrays it is holding. `raise()` reproduces
+ * exactly what `OrdersService.create` does with the balance — snapshot it,
+ * never re-charge it.
  */
 
 /** A ledger harness for one customer, mirroring how the service uses it. */
@@ -28,11 +28,12 @@ class Round {
   private nextBill = 8901;
   private nextPayment = 101;
 
-  private readonly ledger = new LedgerService({
-    /** Oldest first, which is the order the real query returns them in. */
-    ledgerRowsFor: (customerId: string) =>
-      Promise.resolve(this.payments.filter((p) => p.customerId === customerId)),
-  } as unknown as PaymentsService);
+  private readonly ledger = new LedgerService();
+
+  /** Oldest first, which is the order the real query returns them in. */
+  private mine() {
+    return this.payments.filter((p) => p.customerId === this.customerId);
+  }
 
   constructor(private readonly customerId = 'CUST-101') {}
 
@@ -97,12 +98,12 @@ class Round {
   }
 
   async settled(code: string) {
-    const covered = await this.ledger.allocate(this.customerId, this.bills);
+    const covered = this.ledger.allocate(this.mine(), this.bills);
     return (covered.get(code) ?? 0) / 100;
   }
 
   async statusOf(code: string) {
-    const covered = await this.ledger.allocate(this.customerId, this.bills);
+    const covered = this.ledger.allocate(this.mine(), this.bills);
     const bill = this.bills.find((b) => b.code === code)!;
     return this.ledger.status(covered.get(code) ?? 0, bill.totalMinor);
   }

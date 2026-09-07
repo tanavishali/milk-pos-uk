@@ -7,7 +7,7 @@ export type CustomerDocument = HydratedDocument<Customer>;
 @Schema({ collection: 'customers', timestamps: true })
 export class Customer {
   /** Human-readable id, `CUST-101`. Printed in the UI, so it is not the `_id`. */
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   code!: string;
 
   @Prop({ required: true, trim: true, index: true })
@@ -52,3 +52,5 @@ export class Customer {
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
+
+CustomerSchema.index({ createdAt: -1 });

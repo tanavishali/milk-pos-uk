@@ -21,11 +21,54 @@ export interface AuthConfig {
   bcryptRounds: number;
 }
 
+/**
+ * Limits that protect the process itself, as opposed to any one feature.
+ *
+ * Every one of these is a number somebody will want to change per deployment
+ * without a release — a burst of legitimate traffic behind one office IP, a
+ * proxy hop count that differs between platforms — so they are environment
+ * variables with defensible defaults rather than constants.
+ */
+export interface SecurityConfig {
+  /** Window and allowance for the general limiter. */
+  rateLimitTtlMs: number;
+  rateLimitCount: number;
+  /** The same, for sign-in attempts, which want to be far stricter. */
+  authRateLimitTtlMs: number;
+  authRateLimitCount: number;
+  /**
+   * How many reverse proxies sit in front of this process.
+   *
+   * Wrong in either direction breaks the rate limiter: too low and every
+   * request looks like it came from the proxy, so one caller can exhaust the
+   * allowance for everyone; too high and a caller can forge
+   * `X-Forwarded-For` and get a fresh allowance per request.
+   */
+  trustProxyHops: number;
+  /** Largest request body accepted, as a `bytes`-style string. */
+  bodyLimit: string;
+}
+
+/** Defaults for a paginated list endpoint. */
+export interface PaginationConfig {
+  defaultLimit: number;
+  /** A ceiling the caller cannot raise, whatever `?limit=` says. */
+  maxLimit: number;
+}
+
 export interface Configuration {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
+  security: SecurityConfig;
+  pagination: PaginationConfig;
 }
+
+/** Reads an integer env var, falling back when it is absent or unparseable. */
+const int = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
 
 export default (): Configuration => ({
   app: {
@@ -51,5 +94,29 @@ export default (): Configuration => ({
      * codebase, not a per-deployment knob someone can quietly turn down.
      */
     bcryptRounds: 12,
+  },
+  security: {
+    /** 300 a minute is far above a till's real rate and far below a flood. */
+    rateLimitTtlMs: int(process.env.RATE_LIMIT_TTL_MS, 60_000),
+    rateLimitCount: int(process.env.RATE_LIMIT_COUNT, 300),
+    /**
+     * Ten sign-in attempts in fifteen minutes. Enough that a person mistyping
+     * a generated password is never locked out; far too few to work through a
+     * password list.
+     */
+    authRateLimitTtlMs: int(process.env.AUTH_RATE_LIMIT_TTL_MS, 900_000),
+    authRateLimitCount: int(process.env.AUTH_RATE_LIMIT_COUNT, 10),
+    /** 0 = no proxy, which is right for local development. */
+    trustProxyHops: int(process.env.TRUST_PROXY_HOPS, 0),
+    /**
+     * An order with a hundred lines is a few kilobytes. The default of 100kb
+     * is already generous; this pins it rather than leaving it to the express
+     * version in use.
+     */
+    bodyLimit: process.env.BODY_LIMIT ?? '256kb',
+  },
+  pagination: {
+    defaultLimit: int(process.env.PAGE_DEFAULT_LIMIT, 50),
+    maxLimit: int(process.env.PAGE_MAX_LIMIT, 200),
   },
 });

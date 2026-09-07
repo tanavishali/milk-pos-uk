@@ -1,6 +1,6 @@
 import type { Product, ProductDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 /**
@@ -15,7 +15,7 @@ import { tags } from "@services/api/tags";
 export const productsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getProducts: build.query<Product[], void>({
-      queryFn: () => queryFor(() => request<Product[]>("/products")),
+      queryFn: () => queryFor(() => requestAll<Product>("/products")),
       providesTags: [tags.Product],
     }),
 

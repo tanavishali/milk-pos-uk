@@ -14,11 +14,11 @@ export type PaymentDocument = HydratedDocument<Payment>;
 @Schema({ collection: 'payments', timestamps: true })
 export class Payment {
   /** Human-readable id, `PAY-101`. */
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   code!: string;
 
   /** Whose money it is. Every balance is scoped by this. */
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   customerId!: string;
 
   /**
@@ -27,7 +27,7 @@ export class Payment {
    * *Where the cash came in* — not which bill it settles. Those differ every
    * time someone pays last week's bill at this week's door.
    */
-  @Prop({ required: false, default: undefined, index: true })
+  @Prop({ required: false, default: undefined })
   orderId?: string;
 
   /**
@@ -37,7 +37,7 @@ export class Payment {
    * intent was stated: marking this week paid while last week stays open must
    * not silently pay off last week instead.
    */
-  @Prop({ required: false, default: undefined, index: true })
+  @Prop({ required: false, default: undefined })
   appliesTo?: string;
 
   /** Integer pence. */
@@ -60,3 +60,12 @@ export class Payment {
 }
 
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
+
+/**
+ * The ledger reads a customer's payments oldest-first — that is the order it
+ * applies them in — so the index carries the sort as well as the match.
+ */
+PaymentSchema.index({ customerId: 1, createdAt: 1 });
+/** `receivedAtDeliveryMinor`. Sparse: most payments name no delivery. */
+PaymentSchema.index({ orderId: 1 }, { sparse: true });
+PaymentSchema.index({ createdAt: -1 });

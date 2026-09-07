@@ -44,7 +44,12 @@ export class OrderLine {
    * someone with no round: "no particular day" and "Monday" are different
    * facts, and defaulting would erase the distinction.
    */
-  @Prop({ required: false, enum: Object.values(Weekday), default: undefined })
+  @Prop({
+    type: String,
+    required: false,
+    enum: Object.values(Weekday),
+    default: undefined,
+  })
   day?: Weekday;
 }
 
@@ -60,7 +65,8 @@ export const OrderLineSchema = SchemaFactory.createForClass(OrderLine);
 @Schema({ collection: 'orders', timestamps: true })
 export class Order {
   /** Human-readable id, `TRX-8901`. Printed on the receipt. */
-  @Prop({ required: true, unique: true, index: true })
+  /** `unique` already builds the index; `index: true` beside it builds a second. */
+  @Prop({ required: true, unique: true })
   code!: string;
 
   /** `YYYY-MM-DD HH:mm`, matching what the receipt prints. */
@@ -80,7 +86,7 @@ export class Order {
   deliveryDate?: string;
 
   /** Kept alongside the copy, so earlier bills can still be found after a rename. */
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   customerId!: string;
 
   @Prop({ type: OrderCustomerSchema, required: true })
@@ -96,7 +102,7 @@ export class Order {
    * Not `required`, for the same reason as `customer.round`: an unassigned
    * order carries `''`, which a required string would reject.
    */
-  @Prop({ default: '', index: true })
+  @Prop({ default: '' })
   courierId!: string;
 
   @Prop({ type: [OrderLineSchema], required: true })
@@ -129,3 +135,19 @@ export class Order {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+
+/**
+ * Every read of this collection is "newest first", and most are also scoped to
+ * one customer or one courier. Without these the sort runs in memory, which
+ * Mongo aborts outright past 32MB rather than merely running slowly.
+ *
+ * The scoped indexes are compound and lead with the equality field, so one
+ * index serves both the match and the sort — a bare `{ createdAt: -1 }` could
+ * not satisfy the filter, and a bare `{ customerId: 1 }` could not satisfy the
+ * sort.
+ */
+OrderSchema.index({ createdAt: -1 });
+/** `decorate`, `outstanding`, `balance`, and the dashboard's debtor sweep. */
+OrderSchema.index({ customerId: 1, createdAt: -1 });
+/** `/orders/mine` — a driver's own list. */
+OrderSchema.index({ courierId: 1, createdAt: -1 });

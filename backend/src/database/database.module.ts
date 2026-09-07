@@ -55,6 +55,33 @@ function withLogging(connection: Connection): Connection {
          * transactions available for the ledger work later on.
          */
         retryWrites: true,
+
+        /**
+         * Index builds are a deploy-time operation, not a boot-time one.
+         *
+         * Mongoose otherwise issues `createIndex` for every declared index on
+         * every start. On an empty database that is free; on a populated one it
+         * is a foreground build racing the first requests. In development the
+         * convenience is worth it, so the switch is on the environment rather
+         * than off everywhere.
+         */
+        autoIndex: config.getOrThrow<string>('app.nodeEnv') !== 'production',
+
+        /**
+         * The default pool of 100 is far more than a till needs and far more
+         * than Atlas's smaller tiers allow per client. Ten is comfortable for
+         * this workload and leaves headroom for a second process.
+         */
+        maxPoolSize: 10,
+        minPoolSize: 1,
+
+        /**
+         * Fail a request against an unreachable database in five seconds
+         * instead of the default thirty — the caller gets an error while
+         * anyone is still watching, rather than a socket that eventually times
+         * out somewhere upstream.
+         */
+        serverSelectionTimeoutMS: 5_000,
       }),
     }),
     MongooseModule.forFeature([{ name: Counter.name, schema: CounterSchema }]),

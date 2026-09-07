@@ -6,16 +6,24 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiPageResponse } from '../../common/decorators/api-page-response.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { PageDto } from '../../common/dto/page.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { UserRole } from '../../common/enums';
 import { CouriersService } from './couriers.service';
 import { CourierDto } from './dto/courier.dto';
 import { CreateCourierDto } from './dto/create-courier.dto';
@@ -23,6 +31,14 @@ import { UpdateCourierDto } from './dto/update-courier.dto';
 
 @ApiTags('couriers')
 @Controller('couriers')
+/**
+ * Writing here creates and destroys sign-in accounts, so it is the roster
+ * *and* the credential store. A courier editing this list could change another
+ * driver's password.
+ */
+@Roles(UserRole.Admin)
+@ApiBearerAuth('access-token')
+@ApiForbiddenResponse({ description: 'Admin only.' })
 @ApiParam({
   name: 'id',
   required: false,
@@ -34,9 +50,9 @@ export class CouriersController {
 
   @Get()
   @ApiOperation({ summary: 'The dispatch roster, newest first' })
-  @ApiOkResponse({ type: [CourierDto] })
-  list(): Promise<CourierDto[]> {
-    return this.couriers.list();
+  @ApiPageResponse(CourierDto)
+  list(@Query() query: PaginationQueryDto): Promise<PageDto<CourierDto>> {
+    return this.couriers.list(query);
   }
 
   @Get(':id')

@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
+import { PageDto } from '../../common/dto/page.dto';
+import {
+  PaginationQueryDto,
+  resolvePaging,
+} from '../../common/dto/pagination-query.dto';
 import { SequenceService } from '../../database/sequence.service';
 import { AccountsService } from '../auth/accounts.service';
 import { CourierDto } from './dto/courier.dto';
@@ -15,15 +21,46 @@ export class CouriersService {
     @InjectConnection() private readonly connection: Connection,
     private readonly sequence: SequenceService,
     private readonly accounts: AccountsService,
+    private readonly config: ConfigService,
   ) {}
 
-  async list(): Promise<CourierDto[]> {
-    const rows = await this.couriers.find().sort({ createdAt: -1 });
-    return rows.map((row) => CourierDto.from(row));
+  async list(query: PaginationQueryDto = {}): Promise<PageDto<CourierDto>> {
+    const paging = resolvePaging(query, this.config.getOrThrow('pagination'));
+
+    /**
+     * A roster is small today, which is exactly why it is paginated: "there
+     * are only ever a few of these" is an assumption, and the envelope costs
+     * nothing while it holds.
+     *
+     * The count and the page are issued together: neither depends on the
+     * other, so awaiting them in sequence would add a round trip for nothing.
+     */
+    const [rows, total] = await Promise.all([
+      this.couriers
+        .find()
+        .sort({ createdAt: -1 })
+        .skip(paging.skip)
+        .limit(paging.limit)
+        /** Read-only: the DTO reads fields, so hydration is pure overhead. */
+        .lean<Courier[]>(),
+      this.couriers.estimatedDocumentCount(),
+    ]);
+
+    return PageDto.of(
+      rows.map((row) => CourierDto.from(row)),
+      total,
+      paging,
+    );
   }
 
   async findOne(code: string): Promise<CourierDto> {
-    return CourierDto.from(await this.require(code));
+    const courier = await this.couriers.findOne({ code }).lean<Courier>();
+
+    if (!courier) {
+      throw new NotFoundException(`Courier ${code} not found.`);
+    }
+
+    return CourierDto.from(courier);
   }
 
   /**

@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../../common/decorators/public.decorator';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WEEKDAYS, WEEKDAY_INITIAL, WEEKDAY_SHORT } from '../../common/enums';
 import { DELIVERY_ROUNDS } from './delivery.constants';
@@ -11,6 +12,13 @@ import { DeliveryRoundDto, WeekdayDto } from './dto/delivery.dto';
  */
 @ApiTags('delivery')
 @Controller('delivery')
+/**
+ * Public at the class level. These two lists are compile-time constants in this
+ * repository with nothing about a customer, an order or a price in them, and
+ * the sign-in screen needs them before a token exists. Gating them would buy no
+ * confidentiality and cost a round trip ordering problem.
+ */
+@Public()
 export class DeliveryController {
   @Get('rounds')
   @ApiOperation({

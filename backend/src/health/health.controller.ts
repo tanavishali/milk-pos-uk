@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../common/decorators/public.decorator';
 import { InjectConnection } from '@nestjs/mongoose';
 import { ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { Connection, ConnectionStates } from 'mongoose';
@@ -28,6 +29,9 @@ export class HealthController {
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
   @Get()
+  /** A probe has no credentials, and an unreachable database is the one thing
+   *  you most need to read when authentication itself is what broke. */
+  @Public()
   @ApiOperation({
     summary: 'Liveness and database connectivity',
     description:

@@ -13,7 +13,7 @@ export type CourierDocument = HydratedDocument<Courier>;
 @Schema({ collection: 'couriers', timestamps: true })
 export class Courier {
   /** Human-readable id, `COUR-101`. Orders scope a driver's list by it. */
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   code!: string;
 
   @Prop({ required: true, trim: true, index: true })
@@ -43,3 +43,5 @@ export class Courier {
 }
 
 export const CourierSchema = SchemaFactory.createForClass(Courier);
+
+CourierSchema.index({ createdAt: -1 });

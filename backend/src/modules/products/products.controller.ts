@@ -6,15 +6,23 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiPageResponse } from '../../common/decorators/api-page-response.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { PageDto } from '../../common/dto/page.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
+import { UserRole } from '../../common/enums';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductDto } from './dto/product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -22,6 +30,14 @@ import { ProductsService } from './products.service';
 
 @ApiTags('products')
 @Controller('products')
+/**
+ * The catalogue is the terminal's, not the van's. A courier never prices or
+ * restocks anything, and an order carries its own copy of every line's name and
+ * price, so a driver's app has no reason to read this at all.
+ */
+@Roles(UserRole.Admin)
+@ApiBearerAuth('access-token')
+@ApiForbiddenResponse({ description: 'Admin only.' })
 @ApiParam({
   name: 'id',
   required: false,
@@ -32,10 +48,10 @@ export class ProductsController {
   constructor(private readonly products: ProductsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'The whole catalogue, newest first' })
-  @ApiOkResponse({ type: [ProductDto] })
-  list(): Promise<ProductDto[]> {
-    return this.products.list();
+  @ApiOperation({ summary: 'The catalogue, newest first' })
+  @ApiPageResponse(ProductDto)
+  list(@Query() query: PaginationQueryDto): Promise<PageDto<ProductDto>> {
+    return this.products.list(query);
   }
 
   @Get(':id')

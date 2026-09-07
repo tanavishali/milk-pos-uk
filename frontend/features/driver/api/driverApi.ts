@@ -1,6 +1,6 @@
 import type { Order } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 export const driverApi = baseApi.injectEndpoints({
@@ -15,7 +15,7 @@ export const driverApi = baseApi.injectEndpoints({
      * query's cache key — changing accounts must not reuse the cached list.
      */
     getMyDeliveries: build.query<Order[], string>({
-      queryFn: () => queryFor(() => request<Order[]>("/orders/mine")),
+      queryFn: () => queryFor(() => requestAll<Order>("/orders/mine")),
       providesTags: [tags.Order],
     }),
   }),

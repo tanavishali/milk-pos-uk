@@ -1,6 +1,6 @@
 import type { Courier, CourierDraft } from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
-import { queryFor, request } from "@services/api/http";
+import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
 
 /**
@@ -13,7 +13,7 @@ import { tags } from "@services/api/tags";
 export const couriersApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getCouriers: build.query<Courier[], void>({
-      queryFn: () => queryFor(() => request<Courier[]>("/couriers")),
+      queryFn: () => queryFor(() => requestAll<Courier>("/couriers")),
       providesTags: [tags.Courier],
     }),
 

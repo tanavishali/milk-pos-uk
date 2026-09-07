@@ -13,7 +13,7 @@ export type ProductDocument = HydratedDocument<Product>;
 @Schema({ collection: 'products', timestamps: true })
 export class Product {
   /** Human-readable id, `PROD-101`. Printed in the UI, so it is not the `_id`. */
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   code!: string;
 
   @Prop({ required: true, trim: true, index: true })
@@ -36,3 +36,7 @@ export class Product {
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
+
+ProductSchema.index({ createdAt: -1 });
+/** `lowStock` — matches on a range and sorts scarcest-first on the same field. */
+ProductSchema.index({ quantity: 1 });

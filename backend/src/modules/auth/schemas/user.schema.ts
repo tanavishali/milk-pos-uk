@@ -17,7 +17,7 @@ export type UserDocument = HydratedDocument<User>;
 @Schema({ collection: 'users', timestamps: true })
 export class User {
   /** Stored lower-cased and trimmed so sign-in is case-insensitive. */
-  @Prop({ required: true, unique: true, lowercase: true, trim: true, index: true })
+  @Prop({ required: true, unique: true, lowercase: true, trim: true })
   email!: string;
 
   /**
@@ -36,7 +36,13 @@ export class User {
   @Prop({ required: true, trim: true })
   title!: string;
 
-  @Prop({ required: true, enum: Object.values(UserRole), index: true })
+  /**
+   * `type` is stated rather than inferred from the decorator metadata: an enum
+   * property is the one case where the emitted `design:type` is ambiguous, and a
+   * schema that only builds under a metadata-emitting transform cannot be
+   * imported by a plain unit test.
+   */
+  @Prop({ type: String, required: true, enum: Object.values(UserRole), index: true })
   role!: UserRole;
 
   /** Present only for a courier: the roster id their deliveries are scoped to. */
@@ -49,3 +55,6 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+/** `syncCourierAccount` / `removeCourierAccount` / `hasCourierAccount`. */
+UserSchema.index({ courierId: 1, role: 1 }, { sparse: true });

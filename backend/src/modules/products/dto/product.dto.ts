@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { fromMinorUnits } from '../../../common/utils/money';
-import type { ProductDocument } from '../schemas/product.schema';
+import type { Product } from '../schemas/product.schema';
 
 /**
  * A product as the API returns it — field for field what the frontend's
@@ -29,7 +29,12 @@ export class ProductDto {
   @ApiProperty({ example: 15, description: 'Units on hand.' })
   quantity!: number;
 
-  static from(doc: ProductDocument): ProductDto {
+/**
+   * The stored shape rather than the hydrated document: every read path is
+   * `.lean()`, and this mapper only ever reads fields. A `ProductDocument` still
+   * satisfies it, so the write paths pass one straight through.
+   */
+  static from(doc: Product): ProductDto {
     return {
       id: doc.code,
       name: doc.name,

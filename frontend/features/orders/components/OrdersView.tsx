@@ -7,6 +7,7 @@ import {
   LuHandCoins,
   LuPrinter,
   LuReceiptText,
+  LuRepeat,
   LuSearchX,
   LuShoppingBag,
 } from "react-icons/lu";
@@ -339,6 +340,16 @@ export function OrdersView() {
                     tone: "info",
                     onClick: () => setCollectingId(order.id),
                   },
+                  // Placed but not wired yet: raising the repeat bill is the
+                  // next piece of work, and a live button that issued nothing
+                  // would be read as a lost sale.
+                  {
+                    label: "Re-order",
+                    icon: LuRepeat,
+                    tone: "accent",
+                    disabled: true,
+                    onClick: () => {},
+                  },
                 ]}
               />
             </Card>
@@ -346,7 +357,7 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="680px"
+          minWidth="760px"
           headers={[
             { label: "Txn ID" },
             { label: "Customer" },
@@ -426,6 +437,18 @@ export function OrdersView() {
                   >
                     <LuHandCoins className="h-3.5 w-3.5" aria-hidden />
                     Collect
+                  </button>
+                  {/* Same as the card's: in place, deliberately inert until the
+                      repeat bill it raises exists. Muted rather than faded —
+                      it has to stay legible enough to be found later. */}
+                  <button
+                    type="button"
+                    disabled
+                    title="Re-order — coming soon"
+                    className="text-foreground-muted border-border bg-surface-subtle rounded-control-sm text-label inline-flex cursor-not-allowed items-center gap-1 border px-2.5 py-1 font-bold"
+                  >
+                    <LuRepeat className="h-3.5 w-3.5" aria-hidden />
+                    Re-order
                   </button>
                 </div>
               </TableCell>

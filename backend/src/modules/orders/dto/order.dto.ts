@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaymentStatus, Weekday } from '../../../common/enums';
 import { fromMinorUnits } from '../../../common/utils/money';
-import type { OrderDocument } from '../schemas/order.schema';
+import type { Order } from '../schemas/order.schema';
 
 export class OrderLineDto {
   @ApiProperty({ example: 'PROD-101' })
@@ -103,9 +103,15 @@ export class OrderDto {
   @ApiProperty({ example: 0, description: 'Everything this customer owes right now.' })
   customerBalance!: number;
 
-  /** Everything except the four derived fields, which the caller supplies. */
+  /**
+   * Everything except the four derived fields, which the caller supplies.
+   *
+   * Takes `Order`, the stored shape, not `OrderDocument`: the read paths are
+   * all `.lean()` and this only ever reads fields. A hydrated document still
+   * satisfies it, so `create` can hand its own result over unchanged.
+   */
   static from(
-    doc: OrderDocument,
+    doc: Order,
     derived: {
       settledMinor: number;
       status: PaymentStatus;

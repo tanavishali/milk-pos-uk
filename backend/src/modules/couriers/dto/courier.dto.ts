@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { CourierDocument } from '../schemas/courier.schema';
+import type { Courier } from '../schemas/courier.schema';
 
 /**
  * A courier as the API returns it — field for field the frontend's `Courier`
@@ -28,7 +28,12 @@ export class CourierDto {
   @ApiProperty({ example: 'G-11/2, Islamabad', description: 'Where the courier lives.' })
   address!: string;
 
-  static from(doc: CourierDocument): CourierDto {
+/**
+   * The stored shape rather than the hydrated document: every read path is
+   * `.lean()`, and this mapper only ever reads fields. A `CourierDocument` still
+   * satisfies it, so the write paths pass one straight through.
+   */
+  static from(doc: Courier): CourierDto {
     return {
       id: doc.code,
       name: doc.name,
