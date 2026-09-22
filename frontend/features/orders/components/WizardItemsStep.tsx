@@ -156,7 +156,6 @@ export function WizardItemsStep({
             const qty = line?.qty ?? 0;
             const price = line?.price ?? product.salePrice;
             const isSelected = qty > 0;
-            const outOfStock = product.quantity === 0;
 
             return (
               <div
@@ -173,7 +172,6 @@ export function WizardItemsStep({
                     type="button"
                     role="checkbox"
                     aria-checked={isSelected}
-                    disabled={outOfStock}
                     onClick={() => wizard.toggleProduct(product, !isSelected)}
                     className="flex min-w-0 flex-1 items-center gap-2.5 text-left disabled:opacity-60"
                   >
@@ -206,13 +204,9 @@ export function WizardItemsStep({
                           {formatCurrency(product.salePrice)}
                         </strong>{" "}
                         &bull;{" "}
-                        {outOfStock ? (
-                          <strong className="text-danger font-semibold">
-                            Out of stock
-                          </strong>
-                        ) : (
-                          <>Stock: {product.quantity}</>
-                        )}
+                        {/* Reported, never enforced — the count is what the
+                            shelf last said, not permission to sell. */}
+                        Stock: {product.quantity}
                       </span>
                     </span>
                   </button>
@@ -235,7 +229,6 @@ export function WizardItemsStep({
                       type="number"
                       step="0.01"
                       min="0"
-                      disabled={outOfStock}
                       value={price}
                       onChange={(event) =>
                         wizard.setPrice(
@@ -257,7 +250,6 @@ export function WizardItemsStep({
                     <button
                       type="button"
                       aria-label={`Decrease ${product.name} quantity`}
-                      disabled={outOfStock}
                       onClick={() => wizard.adjustQty(product, -1)}
                       className="bg-surface border-border text-foreground-body hover:bg-surface-subtle rounded-control-sm press-scale flex h-7 w-7 items-center justify-center border font-extrabold shadow-card disabled:opacity-60"
                     >
@@ -267,8 +259,6 @@ export function WizardItemsStep({
                       id={`qty-${product.id}`}
                       type="number"
                       min="0"
-                      max={product.quantity}
-                      disabled={outOfStock}
                       value={qty}
                       onChange={(event) =>
                         wizard.setQty(
@@ -281,7 +271,6 @@ export function WizardItemsStep({
                     <button
                       type="button"
                       aria-label={`Increase ${product.name} quantity`}
-                      disabled={outOfStock || qty >= product.quantity}
                       onClick={() => wizard.adjustQty(product, 1)}
                       className="bg-accent text-foreground-on-accent rounded-control-sm press-scale flex h-7 w-7 items-center justify-center font-extrabold shadow-card disabled:opacity-60"
                     >

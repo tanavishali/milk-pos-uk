@@ -3,7 +3,6 @@
 import {
   LuBanknote,
   LuEuro,
-  LuPackageX,
   LuSmile,
   LuTriangleAlert,
   LuUsers,

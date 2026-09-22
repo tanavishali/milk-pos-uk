@@ -181,14 +181,18 @@ export function useOrderWizard() {
     [write],
   );
 
+  /**
+   * Floored at zero, and nothing else.
+   *
+   * There is no ceiling at stock on hand. The count is what the shelf last
+   * said, which on a delivery round is routinely behind what is actually on the
+   * van — refusing the sale meant the cashier could not record an order that
+   * had already happened. Stock is still drawn down when the bill is raised,
+   * and `decrementStock` floors it at zero so the figure never goes negative.
+   */
   const setQty = useCallback(
     (product: Product, qty: number) =>
-      write(product, (line) => ({
-        ...line,
-        // Clamped to stock on hand: the wizard is where overselling gets caught,
-        // because by the time the order is issued the receipt has printed.
-        qty: Math.max(0, Math.min(product.quantity, qty)),
-      })),
+      write(product, (line) => ({ ...line, qty: Math.max(0, qty) })),
     [write],
   );
 
@@ -196,7 +200,7 @@ export function useOrderWizard() {
     (product: Product, delta: number) =>
       write(product, (line) => ({
         ...line,
-        qty: Math.max(0, Math.min(product.quantity, line.qty + delta)),
+        qty: Math.max(0, line.qty + delta),
       })),
     [write],
   );

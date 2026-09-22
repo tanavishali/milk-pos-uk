@@ -9,7 +9,6 @@ import {
   LuPlus,
   LuTag,
   LuTrash,
-  LuTriangleAlert,
   LuWallet,
 } from "react-icons/lu";
 import { useMemo, useState } from "react";

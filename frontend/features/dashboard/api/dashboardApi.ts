@@ -1,4 +1,4 @@
-import type { DashboardMetrics, Order, Product } from "@app-types/index";
+import type { DashboardMetrics, Order } from "@app-types/index";
 import type { PaymentStatus } from "@enums/index";
 import { baseApi } from "@services/api/baseApi";
 import { queryFor, request } from "@services/api/http";
@@ -47,8 +47,10 @@ export const dashboardApi = baseApi.injectEndpoints({
      * worked the panels out in the browser. The server does it now, so the page
      * transfers four summary rows instead of the entire ledger.
      *
-     * Tagged with `Order`, `Payment` and `Product` because it reads all three:
-     * raising a bill, taking money, or editing stock each make it stale.
+     * Tagged with `Order` and `Payment` because it reads both: raising a bill
+     * or taking money makes it stale. Not `Product` — no panel here reads the
+     * catalogue any more, so editing an item would only cause a pointless
+     * refetch.
      */
     getDashboardOverview: build.query<DashboardOverview, number | void>({
       queryFn: (limit) =>
@@ -57,12 +59,7 @@ export const dashboardApi = baseApi.injectEndpoints({
             `/dashboard/overview?limit=${limit ?? 6}`,
           ),
         ),
-      providesTags: [
-        tags.DashboardMetrics,
-        tags.Order,
-        tags.Payment,
-        tags.Product,
-      ],
+      providesTags: [tags.DashboardMetrics, tags.Order, tags.Payment],
     }),
 
     getDashboardMetrics: build.query<DashboardMetrics, void>({
