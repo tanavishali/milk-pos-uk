@@ -37,9 +37,27 @@ export function SkeletonScreen({
 }
 
 /** The four metric tiles at the top of the dashboard. */
+/**
+ * Tailwind needs the whole class name to exist in the source, so the column
+ * count is looked up rather than interpolated.
+ */
+const STAT_COLUMNS: Record<number, string> = {
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+};
+
 export function SkeletonStatCards({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+    /* The grid follows `count`, so the placeholders sit where the real cards
+       will — a four-column skeleton in front of three cards snaps sideways
+       the moment the data lands, which reads as a glitch rather than loading. */
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-2.5 sm:gap-4",
+        STAT_COLUMNS[count] ?? "lg:grid-cols-4",
+      )}
+    >
       {Array.from({ length: count }, (_, index) => (
         <div
           key={index}
