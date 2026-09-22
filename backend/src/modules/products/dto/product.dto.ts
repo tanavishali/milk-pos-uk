@@ -6,7 +6,7 @@ import type { Product } from '../schemas/product.schema';
  * A product as the API returns it — field for field what the frontend's
  * `Product` type expects, so the response drops straight into the existing UI.
  *
- * Prices come back as decimals even though they are stored as integer pence.
+ * The price comes back as a decimal even though it is stored as integer pence.
  * This class is that boundary: one place converts, and nothing downstream has
  * to know which representation it is holding.
  */
@@ -20,10 +20,7 @@ export class ProductDto {
   @ApiProperty({ example: 'Bakery & Pastry' })
   category!: string;
 
-  @ApiProperty({ example: 28, description: 'List price, in pounds.' })
-  retailPrice!: number;
-
-  @ApiProperty({ example: 24.5, description: 'Price actually charged, in pounds.' })
+  @ApiProperty({ example: 24.5, description: 'The price charged, in pounds.' })
   salePrice!: number;
 
   @ApiProperty({ example: 15, description: 'Units on hand.' })
@@ -39,7 +36,6 @@ export class ProductDto {
       id: doc.code,
       name: doc.name,
       category: doc.category,
-      retailPrice: fromMinorUnits(doc.retailPriceMinor),
       salePrice: fromMinorUnits(doc.salePriceMinor),
       quantity: doc.quantity,
     };

@@ -15,7 +15,6 @@ import {
 interface ProductForm {
   name: string;
   category: string;
-  retailPrice: string;
   salePrice: string;
   quantity: string;
 }
@@ -23,7 +22,6 @@ interface ProductForm {
 const EMPTY: ProductForm = {
   name: "",
   category: "",
-  retailPrice: "",
   salePrice: "",
   quantity: "",
 };
@@ -44,7 +42,6 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
       ? {
           name: product.name,
           category: product.category,
-          retailPrice: String(product.retailPrice),
           salePrice: String(product.salePrice),
           quantity: String(product.quantity),
         }
@@ -58,22 +55,31 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
 
   const saving = createState.isLoading || updateState.isLoading;
 
+  /**
+   * A new item is only three facts. The count on the shelf is not among them
+   * — the delivery has not arrived — so it is asked for on edit and not here.
+   */
+  const editing = product !== undefined;
+
   const set = <K extends keyof ProductForm>(key: K, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const submit = async () => {
-    const draft: ProductDraft = {
+    const shared = {
       name: form.name,
       category,
-      retailPrice: Number.parseFloat(form.retailPrice) || 0,
       salePrice: Number.parseFloat(form.salePrice) || 0,
-      quantity: Number.parseInt(form.quantity, 10) || 0,
     };
 
     if (product) {
+      const draft: ProductDraft = {
+        ...shared,
+        quantity: Number.parseInt(form.quantity, 10) || 0,
+      };
       await updateProduct({ id: product.id, draft }).unwrap();
     } else {
-      await createProduct(draft).unwrap();
+      // The API starts stock at nothing.
+      await createProduct(shared).unwrap();
     }
     onClose();
   };
@@ -126,45 +132,35 @@ export function ProductModal({ onClose, product }: ProductModalProps) {
           />
         </FormField>
 
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-          <FormField label="Retail Price (€)" htmlFor="prod-retail" required>
-            <input
-              id="prod-retail"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              value={form.retailPrice}
-              onChange={(e) => set("retailPrice", e.target.value)}
-              className={inputClass()}
-            />
-          </FormField>
-
-          <FormField label="Sale Price (€)" htmlFor="prod-sale" required>
-            <input
-              id="prod-sale"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              value={form.salePrice}
-              onChange={(e) => set("salePrice", e.target.value)}
-              className={inputClass()}
-            />
-          </FormField>
-        </div>
-
-        <FormField label="Quantity in Stock" htmlFor="prod-qty" required>
+        {/* One price. There is no list price to sit beside it. */}
+        <FormField label="Sale Price (€)" htmlFor="prod-sale" required>
           <input
-            id="prod-qty"
+            id="prod-sale"
             type="number"
+            step="0.01"
             min="0"
             required
-            value={form.quantity}
-            onChange={(e) => set("quantity", e.target.value)}
+            value={form.salePrice}
+            onChange={(e) => set("salePrice", e.target.value)}
             className={inputClass()}
           />
         </FormField>
+
+        {/* Stock is set here and drawn down by orders; there is no other way to
+            put units back on the shelf, which is why edit keeps the field. */}
+        {editing && (
+          <FormField label="Quantity in Stock" htmlFor="prod-qty" required>
+            <input
+              id="prod-qty"
+              type="number"
+              min="0"
+              required
+              value={form.quantity}
+              onChange={(e) => set("quantity", e.target.value)}
+              className={inputClass()}
+            />
+          </FormField>
+        )}
       </form>
     </Modal>
   );

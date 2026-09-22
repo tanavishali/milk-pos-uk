@@ -6,9 +6,12 @@ export type ProductDocument = HydratedDocument<Product>;
 /**
  * A catalogue item.
  *
- * Prices are stored as **integer pence**, which is why the fields are named
+ * The price is stored as **integer pence**, which is why the field is named
  * `…Minor`: the name is the reminder that `2450` is £24.50 and not £2450. The
  * API converts at the DTO boundary, so callers still see decimals.
+ *
+ * **One price.** A round sells at the price on the round, so there is no second
+ * "list" price to keep true for nobody's benefit.
  */
 @Schema({ collection: 'products', timestamps: true })
 export class Product {
@@ -23,11 +26,7 @@ export class Product {
   @Prop({ required: true, trim: true, index: true })
   category!: string;
 
-  /** List price, shown struck through. Integer pence. */
-  @Prop({ required: true, min: 0 })
-  retailPriceMinor!: number;
-
-  /** The price actually charged. Integer pence. */
+  /** The price charged. Integer pence. */
   @Prop({ required: true, min: 0 })
   salePriceMinor!: number;
 
@@ -38,5 +37,3 @@ export class Product {
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
 ProductSchema.index({ createdAt: -1 });
-/** `lowStock` — matches on a range and sorts scarcest-first on the same field. */
-ProductSchema.index({ quantity: 1 });

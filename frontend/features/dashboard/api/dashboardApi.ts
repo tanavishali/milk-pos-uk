@@ -36,7 +36,6 @@ export interface DashboardOverview {
   metrics: DashboardMetrics;
   debtors: Panel<Debtor>;
   openBills: Panel<OpenBill>;
-  lowStock: Panel<Product>;
 }
 
 export const dashboardApi = baseApi.injectEndpoints({

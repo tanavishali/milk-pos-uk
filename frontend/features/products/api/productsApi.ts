@@ -1,4 +1,8 @@
-import type { Product, ProductDraft } from "@app-types/index";
+import type {
+  NewProductDraft,
+  Product,
+  ProductDraft,
+} from "@app-types/index";
 import { baseApi } from "@services/api/baseApi";
 import { queryFor, request, requestAll } from "@services/api/http";
 import { tags } from "@services/api/tags";
@@ -36,7 +40,7 @@ export const productsApi = baseApi.injectEndpoints({
       invalidatesTags: [tags.Category],
     }),
 
-    createProduct: build.mutation<Product, ProductDraft>({
+    createProduct: build.mutation<Product, NewProductDraft>({
       queryFn: (draft) =>
         queryFor(() =>
           request<Product>("/products", {

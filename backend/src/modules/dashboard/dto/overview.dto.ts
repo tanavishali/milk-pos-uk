@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PaymentStatus } from '../../../common/enums';
-import { ProductDto } from '../../products/dto/product.dto';
 import { DashboardMetricsDto } from './dashboard.dto';
 
 /** A customer who owes money, and how much of it. */
@@ -74,14 +73,6 @@ export class OpenBillPanelDto {
   total!: number;
 }
 
-export class LowStockPanelDto {
-  @ApiProperty({ type: [ProductDto] })
-  rows!: ProductDto[];
-
-  @ApiProperty({ example: 0 })
-  total!: number;
-}
-
 /**
  * Everything the dashboard screen needs, in one response.
  *
@@ -99,6 +90,4 @@ export class DashboardOverviewDto {
   @ApiProperty({ type: OpenBillPanelDto, description: 'Bills not yet settled, newest first.' })
   openBills!: OpenBillPanelDto;
 
-  @ApiProperty({ type: LowStockPanelDto, description: 'Below the reorder point, scarcest first.' })
-  lowStock!: LowStockPanelDto;
 }

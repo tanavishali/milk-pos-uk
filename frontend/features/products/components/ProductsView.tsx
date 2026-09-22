@@ -13,7 +13,7 @@ import {
   LuWallet,
 } from "react-icons/lu";
 import { useMemo, useState } from "react";
-import { LOW_STOCK_THRESHOLD, type Product } from "@app-types/index";
+import { type Product } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
 import {
   Card,
@@ -98,10 +98,8 @@ export function ProductsView() {
   // Catalogue-wide, not filter-scoped: "how much stock do I hold" should not
   // change because someone typed into the search box.
   const stats = useMemo(() => {
-    const low = products.filter((p) => p.quantity < LOW_STOCK_THRESHOLD);
     return {
       count: products.length,
-      lowCount: low.length,
       stockValue: products.reduce(
         (sum, p) => sum + p.salePrice * p.quantity,
         0,
@@ -145,7 +143,7 @@ export function ProductsView() {
       {isError ? null : isLoading ? (
         <SkeletonStatCards />
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
           <StatCard
             label="Total Items"
             value={stats.count}
@@ -159,13 +157,6 @@ export function ProductsView() {
             icon={LuWallet}
             tone="success"
             caption="At sale price"
-          />
-          <StatCard
-            label="Low Stock"
-            value={stats.lowCount}
-            icon={LuTriangleAlert}
-            tone={stats.lowCount > 0 ? "danger" : "success"}
-            caption={`Below ${LOW_STOCK_THRESHOLD} units`}
           />
           <StatCard
             label="Categories"
@@ -225,7 +216,7 @@ export function ProductsView() {
         <RegistrySkeleton
           viewMode={mode}
           label="Loading master items"
-          columns={6}
+          columns={5}
         />
       ) : filtered.length === 0 ? (
         <EmptyState message="No items found" icon={LuPackageX} />
@@ -238,14 +229,7 @@ export function ProductsView() {
                   <Badge tone="accent" uppercase>
                     {product.category}
                   </Badge>
-                  <span
-                    className={cn(
-                      "text-micro font-bold whitespace-nowrap",
-                      product.quantity < LOW_STOCK_THRESHOLD
-                        ? "text-danger-text"
-                        : "text-foreground-subtle",
-                    )}
-                  >
+                  <span className="text-micro text-foreground-subtle font-bold whitespace-nowrap">
                     Qty: {product.quantity}
                   </span>
                 </div>
@@ -260,9 +244,6 @@ export function ProductsView() {
                 <div className="mt-3 flex items-baseline gap-2">
                   <span className="text-foreground-strong font-display text-xl font-bold">
                     {formatCurrency(product.salePrice)}
-                  </span>
-                  <span className="text-foreground-subtle text-xs line-through">
-                    {formatCurrency(product.retailPrice)}
                   </span>
                 </div>
               </div>
@@ -300,8 +281,7 @@ export function ProductsView() {
           headers={[
             { label: "Item Name" },
             { label: "Category" },
-            { label: "Retail Price" },
-            { label: "Sale Price" },
+            { label: "Price" },
             { label: "Stock" },
             { label: "Actions", align: "right" },
           ]}
@@ -314,20 +294,10 @@ export function ProductsView() {
               <TableCell className="whitespace-nowrap">
                 <Badge>{product.category}</Badge>
               </TableCell>
-              <TableCell className="text-foreground-subtle whitespace-nowrap line-through">
-                {formatCurrency(product.retailPrice)}
-              </TableCell>
               <TableCell className="text-foreground-strong font-bold whitespace-nowrap">
                 {formatCurrency(product.salePrice)}
               </TableCell>
-              <TableCell
-                className={cn(
-                  "font-semibold whitespace-nowrap",
-                  product.quantity < LOW_STOCK_THRESHOLD
-                    ? "text-danger"
-                    : "text-foreground-body",
-                )}
-              >
+              <TableCell className="text-foreground-body font-semibold whitespace-nowrap">
                 {product.quantity}
               </TableCell>
               <TableCell align="right" className="whitespace-nowrap">
@@ -392,20 +362,13 @@ export function ProductsView() {
           }}
           highlights={[
             {
-              label: "Sale price",
+              label: "Price",
               value: formatCurrency(viewing.salePrice),
               tone: "accent",
-              caption: `${formatCurrency(viewing.retailPrice)} retail`,
             },
             {
               label: "Stock on hand",
               value: viewing.quantity,
-              tone:
-                viewing.quantity < LOW_STOCK_THRESHOLD ? "danger" : "success",
-              caption:
-                viewing.quantity < LOW_STOCK_THRESHOLD
-                  ? "Below reorder point"
-                  : "In stock",
             },
             {
               label: "Stock value",
@@ -415,23 +378,7 @@ export function ProductsView() {
           ]}
           fields={[
             { label: "Category", value: viewing.category },
-            {
-              label: "Retail price",
-              value: formatCurrency(viewing.retailPrice),
-            },
-            { label: "Sale price", value: formatCurrency(viewing.salePrice) },
-            {
-              label: "Discount off retail",
-              value: `${formatCurrency(viewing.retailPrice - viewing.salePrice)} (${
-                viewing.retailPrice > 0
-                  ? Math.round(
-                      ((viewing.retailPrice - viewing.salePrice) /
-                        viewing.retailPrice) *
-                        100,
-                    )
-                  : 0
-              }%)`,
-            },
+            { label: "Price", value: formatCurrency(viewing.salePrice) },
           ]}
         />
       ) : null}

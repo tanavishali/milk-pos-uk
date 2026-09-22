@@ -27,7 +27,7 @@ export class DashboardController {
   @ApiOperation({
     summary: 'The whole dashboard in one response',
     description:
-      'Headline figures plus three panels: who owes money, which bills are open, and what is below the reorder point. One request rather than four, so the panels cannot disagree with each other while the last one is still loading.',
+      'Headline figures plus two panels: who owes money and which bills are open. One request rather than three, so the panels cannot disagree with each other while the last one is still loading.',
   })
   @ApiQuery({
     name: 'limit',

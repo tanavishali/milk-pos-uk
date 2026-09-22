@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsInt,
   IsNumber,
   IsString,
   Max,
@@ -9,6 +8,19 @@ import {
   MinLength,
 } from 'class-validator';
 
+/**
+ * What it takes to put a new item on the catalogue: what it is called, what it
+ * is, and what it sells for.
+ *
+ * **Stock is deliberately absent.** A count on the shelf is a delivery that has
+ * not arrived at the moment the item is first written down, so asking for it up
+ * front only ever got a made-up number. It is still a real field on a product
+ * and `UpdateProductDto` accepts it; it is set once there is something true to
+ * say.
+ *
+ * There is no list price either, anywhere: a product has one price, the one it
+ * sells for.
+ */
 export class CreateProductDto {
   @ApiProperty({ example: 'Belgian Chocolate Fudge Cake' })
   @IsString()
@@ -27,22 +39,12 @@ export class CreateProductDto {
   category!: string;
 
   @ApiProperty({
-    example: 28,
-    description: 'List price in pounds, to two decimals. Stored as integer pence.',
+    example: 24.5,
+    description:
+      'Price charged, in pounds, to two decimals. Stored as integer pence.',
   })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(1_000_000)
-  retailPrice!: number;
-
-  @ApiProperty({ example: 24.5, description: 'Price charged, in pounds.' })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(1_000_000)
   salePrice!: number;
-
-  @ApiProperty({ example: 15 })
-  @IsInt()
-  @Min(0)
-  quantity!: number;
 }

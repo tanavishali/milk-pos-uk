@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, type ClientSession } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
-import { LOW_STOCK_THRESHOLD } from '../../common/constants';
 import { PageDto } from '../../common/dto/page.dto';
 import {
   PaginationQueryDto,
@@ -66,14 +65,19 @@ export class ProductsService {
     return ProductDto.from(product);
   }
 
+  /**
+   * Put a new item on the catalogue.
+   *
+   * Stock is not asked for — see `CreateProductDto` — and starts at nothing,
+   * which is true: the delivery has not arrived. That is the schema's own
+   * default, so it is left unsaid here rather than written twice.
+   */
   async create(dto: CreateProductDto): Promise<ProductDto> {
     const created = await this.products.create({
       code: await this.sequence.next('PROD'),
       name: dto.name.trim(),
       category: dto.category.trim(),
-      retailPriceMinor: toMinorUnits(dto.retailPrice),
       salePriceMinor: toMinorUnits(dto.salePrice),
-      quantity: dto.quantity,
     });
 
     return ProductDto.from(created);
@@ -88,9 +92,6 @@ export class ProductsService {
      */
     if (dto.name !== undefined) product.name = dto.name.trim();
     if (dto.category !== undefined) product.category = dto.category.trim();
-    if (dto.retailPrice !== undefined) {
-      product.retailPriceMinor = toMinorUnits(dto.retailPrice);
-    }
     if (dto.salePrice !== undefined) {
       product.salePriceMinor = toMinorUnits(dto.salePrice);
     }
@@ -110,22 +111,6 @@ export class ProductsService {
     }
 
     return { id: code };
-  }
-
-  /**
-   * Items at or below the reorder point, scarcest first — the order they need
-   * buying in. Returns the total as well, so a capped list can say how many it
-   * is standing in for.
-   */
-  async lowStock(limit: number): Promise<{ rows: ProductDto[]; total: number }> {
-    const filter = { quantity: { $lt: LOW_STOCK_THRESHOLD } };
-
-    const [rows, total] = await Promise.all([
-      this.products.find(filter).sort({ quantity: 1 }).limit(limit).lean<Product[]>(),
-      this.products.countDocuments(filter),
-    ]);
-
-    return { rows: rows.map((row) => ProductDto.from(row)), total };
   }
 
   /**

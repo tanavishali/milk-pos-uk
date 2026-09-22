@@ -8,7 +8,6 @@ import { Customer, type CustomerDocument } from '../customers/schemas/customer.s
 import { OrderDto } from '../orders/dto/order.dto';
 import { OrdersService } from '../orders/orders.service';
 import { PaymentsService } from '../payments/payments.service';
-import { ProductsService } from '../products/products.service';
 import { DashboardMetricsDto } from './dto/dashboard.dto';
 import {
   DashboardOverviewDto,
@@ -21,7 +20,6 @@ export class DashboardService {
   constructor(
     private readonly orders: OrdersService,
     private readonly payments: PaymentsService,
-    private readonly products: ProductsService,
     @InjectModel(Customer.name)
     private readonly customers: Model<CustomerDocument>,
     @InjectModel(Courier.name)
@@ -71,13 +69,11 @@ export class DashboardService {
    * than over the entire ledger.
    */
   async overview(limit: number): Promise<DashboardOverviewDto> {
-    const [metrics, billedByCustomer, paidByCustomer, lowStock] =
-      await Promise.all([
-        this.metrics(),
-        this.orders.billedTotalsByCustomer(),
-        this.payments.paidTotalsByCustomer(),
-        this.products.lowStock(limit),
-      ]);
+    const [metrics, billedByCustomer, paidByCustomer] = await Promise.all([
+      this.metrics(),
+      this.orders.billedTotalsByCustomer(),
+      this.payments.paidTotalsByCustomer(),
+    ]);
 
     const owing: DebtorDto[] = [];
 
@@ -138,7 +134,6 @@ export class DashboardService {
       metrics,
       debtors: { rows: owing.slice(0, limit), total: owing.length },
       openBills: { rows: openBills.slice(0, limit), total: openBills.length },
-      lowStock,
     };
   }
 }

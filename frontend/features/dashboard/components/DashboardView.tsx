@@ -8,7 +8,6 @@ import {
   LuTriangleAlert,
   LuUsers,
 } from "react-icons/lu";
-import { LOW_STOCK_THRESHOLD } from "@app-types/index";
 import { PageHeader, StatCard } from "@components/ui/cards";
 import { Badge, Table, TableCell, TableRow } from "@components/ui/data-display";
 import {
@@ -63,7 +62,7 @@ export function DashboardView() {
     );
   }
 
-  const { metrics, debtors, openBills, lowStock } = data;
+  const { metrics, debtors, openBills } = data;
 
   return (
     <div className="space-y-4">
@@ -197,43 +196,6 @@ export function DashboardView() {
           )}
         </section>
 
-        <section className="space-y-2">
-          <h3 className="text-foreground-strong text-xs font-extrabold">
-            Low stock
-          </h3>
-          {lowStock.rows.length === 0 ? (
-            <EmptyState
-              message={`Nothing below ${LOW_STOCK_THRESHOLD} units.`}
-              icon={LuPackageX}
-            />
-          ) : (
-            <Table
-              minWidth="360px"
-              headers={[
-                { label: "Item" },
-                { label: "Category" },
-                { label: "On Hand", align: "right" },
-              ]}
-            >
-              {lowStock.rows.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="text-foreground font-bold">
-                    {product.name}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge tone="accent">{product.category}</Badge>
-                  </TableCell>
-                  <TableCell
-                    align="right"
-                    className="text-danger font-extrabold whitespace-nowrap"
-                  >
-                    {product.quantity}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </Table>
-          )}
-        </section>
       </div>
     </div>
   );
