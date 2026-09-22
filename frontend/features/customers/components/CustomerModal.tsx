@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import type { Customer, CustomerDraft } from "@app-types/index";
-import type { Weekday } from "@enums/index";
 
 import { Button } from "@components/ui/buttons";
 import {
-  DayPicker,
   FormField,
   PhoneInput,
   Select,
@@ -65,20 +63,17 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
     value: string,
   ) => setDraft((prev) => ({ ...prev, [key]: value }));
 
-  const setDays = (deliveryDays: Weekday[]) =>
-    setDraft((prev) => ({ ...prev, deliveryDays }));
-
   /**
-   * Choosing a round fills the day toggles from it, so the two cannot silently
-   * disagree. The toggles stay editable afterwards — a one-off variation should
-   * not require inventing a new round.
+   * The round is the only way days are set on this form now — the day toggles
+   * are gone, so picking a round is what schedules the customer. Clearing the
+   * round clears the days with it rather than leaving the previous round's days
+   * stranded on a customer who is on no round.
    */
   const setRound = (round: string) =>
     setDraft((prev) => ({
       ...prev,
       round,
-      deliveryDays:
-        rounds.find((r) => r.id === round)?.days ?? prev.deliveryDays,
+      deliveryDays: rounds.find((r) => r.id === round)?.days ?? [],
     }));
 
   const submit = async () => {
@@ -151,10 +146,6 @@ export function CustomerModal({ onClose, customer }: CustomerModalProps) {
               label: r.label,
             }))}
           />
-        </FormField>
-
-        <FormField label="Delivery Days" htmlFor="cust-days">
-          <DayPicker value={draft.deliveryDays} onChange={setDays} />
         </FormField>
 
         <FormField label="Email Address" htmlFor="cust-email" required>

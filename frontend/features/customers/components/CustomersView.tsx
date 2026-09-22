@@ -30,6 +30,7 @@ import { SearchInput, Select } from "@components/ui/fields";
 import { ConfirmDialog, DetailModal } from "@components/ui/modals";
 import {
   Avatar,
+  Badge,
   DayChips,
   Pagination,
   Table,
@@ -256,7 +257,7 @@ export function CustomersView() {
         <RegistrySkeleton
           viewMode={mode}
           label="Loading customers"
-          columns={7}
+          columns={8}
         />
       ) : filtered.length === 0 ? (
         <EmptyState message="No customers found" icon={LuUserX} />
@@ -352,6 +353,7 @@ export function CustomersView() {
           headers={[
             { label: "Name" },
             { label: "Phone" },
+            { label: "Round" },
             { label: "Days" },
             { label: "Email" },
             { label: "Area" },
@@ -366,6 +368,14 @@ export function CustomersView() {
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 {customer.phone}
+              </TableCell>
+              {/* The round is what the day chips are derived from now that the
+                  customer form no longer toggles days by hand, so it is named
+                  outright rather than left to be read off the chips. */}
+              <TableCell className="whitespace-nowrap">
+                <Badge tone={customer.round ? "accent" : "neutral"}>
+                  {roundLabel(customer.round)}
+                </Badge>
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <DayChips days={customer.deliveryDays} />

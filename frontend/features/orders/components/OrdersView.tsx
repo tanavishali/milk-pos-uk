@@ -7,7 +7,6 @@ import {
   LuHandCoins,
   LuPrinter,
   LuReceiptText,
-  LuRepeat,
   LuSearchX,
   LuShoppingBag,
 } from "react-icons/lu";
@@ -24,7 +23,6 @@ import {
 import { SearchInput, Select } from "@components/ui/fields";
 import {
   Badge,
-  DayChips,
   Pagination,
   Table,
   TableCell,
@@ -37,7 +35,7 @@ import {
   RegistrySkeleton,
   SkeletonStatCards,
 } from "@components/ui/states";
-import { PaymentStatus, ViewMode, WEEKDAYS, type Weekday } from "@enums/index";
+import { PaymentStatus, ViewMode } from "@enums/index";
 import { useIsCompact } from "@hooks/useIsCompact";
 import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
@@ -52,16 +50,6 @@ import { OrderWizard } from "./OrderWizard";
 
 const totalUnits = (order: Order) =>
   order.items.reduce((sum, line) => sum + line.qty, 0);
-
-/**
- * The delivery days this order covers, in round order.
- *
- * Derived from the order's own lines rather than the customer's current round:
- * moving someone to a different round must not change which days last week's
- * order was for.
- */
-const orderDays = (order: Order): Weekday[] =>
-  WEEKDAYS.filter((day) => order.items.some((line) => line.day === day));
 
 const statusTone = (status: PaymentStatus) => {
   if (status === PaymentStatus.Paid) return "success";
@@ -299,13 +287,10 @@ export function OrdersView() {
                 <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
                   Courier: {order.courier}
                 </p>
-                <p className="mt-1 flex items-center gap-2">
-                  {orderDays(order).length > 0 ? (
-                    <DayChips days={orderDays(order)} />
-                  ) : null}
-                  <span className="text-foreground-subtle text-micro truncate">
+                <p className="mt-1.5">
+                  <Badge tone={order.customer.round ? "accent" : "neutral"}>
                     {roundLabel(order.customer.round)}
-                  </span>
+                  </Badge>
                 </p>
 
                 <div className="mt-3 flex items-baseline gap-2">
@@ -340,16 +325,6 @@ export function OrdersView() {
                     tone: "info",
                     onClick: () => setCollectingId(order.id),
                   },
-                  // Placed but not wired yet: raising the repeat bill is the
-                  // next piece of work, and a live button that issued nothing
-                  // would be read as a lost sale.
-                  {
-                    label: "Re-order",
-                    icon: LuRepeat,
-                    tone: "accent",
-                    disabled: true,
-                    onClick: () => {},
-                  },
                 ]}
               />
             </Card>
@@ -357,11 +332,11 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="760px"
+          minWidth="800px"
           headers={[
             { label: "Txn ID" },
             { label: "Customer" },
-            { label: "Days" },
+            { label: "Round" },
             { label: "Courier" },
             { label: "Qty" },
             { label: "Status" },
@@ -382,19 +357,14 @@ export function OrdersView() {
                   {order.customer.phone}
                 </div>
               </TableCell>
+              {/* The round the customer was on when the bill was raised, copied
+                  onto the order — it is what dispatch sorts the van by, so it
+                  gets a column of its own. Walk-ins keep a neutral badge: "no
+                  round" is an answer, not an empty cell. */}
               <TableCell className="whitespace-nowrap">
-                {/* The days this order actually goes out on, taken from its own
-                    lines — not the customer's round, which may have changed
-                    since. Orders raised before per-day carts existed have no
-                    dated lines, so the chips are omitted rather than shown all
-                    empty: "No schedule" beside a real round name reads as a
-                    contradiction. */}
-                {orderDays(order).length > 0 ? (
-                  <DayChips days={orderDays(order)} />
-                ) : null}
-                <div className="text-nano text-foreground-subtle mt-0.5">
+                <Badge tone={order.customer.round ? "accent" : "neutral"}>
                   {roundLabel(order.customer.round)}
-                </div>
+                </Badge>
               </TableCell>
               <TableCell className="text-foreground-body whitespace-nowrap">
                 {order.courier}
@@ -437,18 +407,6 @@ export function OrdersView() {
                   >
                     <LuHandCoins className="h-3.5 w-3.5" aria-hidden />
                     Collect
-                  </button>
-                  {/* Same as the card's: in place, deliberately inert until the
-                      repeat bill it raises exists. Muted rather than faded —
-                      it has to stay legible enough to be found later. */}
-                  <button
-                    type="button"
-                    disabled
-                    title="Re-order — coming soon"
-                    className="text-foreground-muted border-border bg-surface-subtle rounded-control-sm text-label inline-flex cursor-not-allowed items-center gap-1 border px-2.5 py-1 font-bold"
-                  >
-                    <LuRepeat className="h-3.5 w-3.5" aria-hidden />
-                    Re-order
                   </button>
                 </div>
               </TableCell>
