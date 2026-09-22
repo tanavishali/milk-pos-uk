@@ -20,7 +20,7 @@ export class CreateCustomerDto {
   @MaxLength(120)
   name!: string;
 
-  @ApiProperty({ example: '+92 300 1234567' })
+  @ApiProperty({ example: '+44 7700 900123' })
   @IsString()
   @MinLength(1)
   @MaxLength(40)

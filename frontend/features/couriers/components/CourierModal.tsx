@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Courier, CourierDraft } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
-import { FormField, inputClass } from "@components/ui/fields";
+import { FormField, PhoneInput, inputClass } from "@components/ui/fields";
 import { Modal } from "@components/ui/modals";
 import {
   useCreateCourierMutation,
@@ -100,14 +100,15 @@ export function CourierModal({ onClose, courier }: CourierModalProps) {
         </FormField>
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {/* Stored as `+44 …`, same as a customer's: this is the number
+              dispatch rings, so the dial code is part of it rather than a
+              display flourish. */}
           <FormField label="Phone Number" htmlFor="courier-phone" required>
-            <input
+            <PhoneInput
               id="courier-phone"
-              type="tel"
               required
               value={draft.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              className={inputClass()}
+              onChange={(value) => set("phone", value)}
             />
           </FormField>
 

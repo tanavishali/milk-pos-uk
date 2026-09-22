@@ -8,7 +8,7 @@ export class CreateCourierDto {
   @MaxLength(120)
   name!: string;
 
-  @ApiProperty({ example: '+92 333 4455667' })
+  @ApiProperty({ example: '+44 7700 900123' })
   @IsString()
   @MinLength(1)
   @MaxLength(40)
