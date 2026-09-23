@@ -14,3 +14,11 @@ export type {
 export type { Payment, PaymentDraft } from "./payment.types";
 export type { DashboardMetrics } from "./dashboard.types";
 export type { AuthUser, Credentials } from "./auth.types";
+export type {
+  CloseRoundBookResult,
+  RoundBook,
+  RoundBookStatement,
+  RoundBookSummary,
+  RolledForwardBill,
+  RolledForwardSkip,
+} from "./roundBook.types";

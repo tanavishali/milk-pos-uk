@@ -128,6 +128,16 @@ export class Order {
   grandTotalMinor!: number;
 
   /**
+   * The code of the round book this bill was raised into, `RB-101`.
+   *
+   * Stamped once, when the bill is raised, from the round's open book — never
+   * worked out later from a date. Absent for a walk-in, who is on no round and
+   * so in no book.
+   */
+  @Prop({ required: false, default: undefined })
+  roundBook?: string;
+
+  /**
    * Set by `timestamps: true`. Declared so the ledger can sort on it — being
    * able to order bills oldest-first is not optional here.
    */
@@ -151,3 +161,5 @@ OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ customerId: 1, createdAt: -1 });
 /** `/orders/mine` — a driver's own list. */
 OrderSchema.index({ courierId: 1, createdAt: -1 });
+/** A round book's bills. Sparse: a walk-in's bill belongs to no book. */
+OrderSchema.index({ roundBook: 1 }, { sparse: true });

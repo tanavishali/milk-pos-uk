@@ -26,6 +26,7 @@ import { UserRole } from '../../common/enums';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { CustomerDto } from './dto/customer.dto';
+import { PauseCustomerDto } from './dto/pause-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @ApiTags('customers')
@@ -82,6 +83,21 @@ export class CustomersController {
     @Body() dto: UpdateCustomerDto,
   ): Promise<CustomerDto> {
     return this.customers.update(id, dto);
+  }
+
+  @Patch(':id/pause')
+  @ApiOperation({
+    summary: 'Pause or resume a customer',
+    description:
+      'A paused customer gets no bill for next week when their round book closes. Past bills and their balance are untouched.',
+  })
+  @ApiOkResponse({ type: CustomerDto })
+  @ApiNotFoundResponse({ description: 'No customer with that id.' })
+  pause(
+    @Param('id') id: string,
+    @Body() dto: PauseCustomerDto,
+  ): Promise<CustomerDto> {
+    return this.customers.setPaused(id, dto.paused);
   }
 
   @Delete(':id')

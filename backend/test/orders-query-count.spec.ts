@@ -120,6 +120,8 @@ function harness(customerCount: number, billsEach = 3) {
     {} as never,
     {} as never,
     config,
+    /** Round books are only touched when a bill is raised, not when one is read. */
+    {} as never,
   );
 
   return { service, calls, rows };

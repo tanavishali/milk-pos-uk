@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
-import { Connection, Model } from 'mongoose';
+import { Connection, Model, type ClientSession } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { PageDto } from '../../common/dto/page.dto';
 import {
@@ -14,6 +14,15 @@ import { CouriersService } from '../couriers/couriers.service';
 import { CustomersService } from '../customers/customers.service';
 import { PaymentsService, formatTimestamp } from '../payments/payments.service';
 import { ProductsService } from '../products/products.service';
+import { DELIVERY_ROUNDS } from '../delivery/delivery.constants';
+import type {
+  RolledForwardBillDto,
+  RolledForwardDto,
+  RolledForwardSkipDto,
+} from '../round-books/dto/round-book.dto';
+import { addDays } from '../round-books/round-book.summary';
+import type { RoundBook } from '../round-books/schemas/round-book.schema';
+import { RoundBooksService } from '../round-books/round-books.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderDto, OutstandingDto } from './dto/order.dto';
 import { LedgerService, type LedgerBill } from './ledger.service';
@@ -44,6 +53,8 @@ export class OrdersService {
     private readonly couriers: CouriersService,
     private readonly products: ProductsService,
     private readonly config: ConfigService,
+    /** Last, so the positional test harnesses that build this service keep lining up. */
+    private readonly roundBooks: RoundBooksService,
   ) {}
 
   /**
@@ -216,6 +227,15 @@ export class OrdersService {
       let created!: OrderDocument;
 
       await session.withTransaction(async () => {
+        /**
+         * Inside the transaction, so a book being closed at this moment
+         * conflicts with this bill instead of freezing statements without it.
+         * The retry then lands the bill in next week's book.
+         */
+        const book = customer.round
+          ? await this.roundBooks.openBook(customer.round, session)
+          : null;
+
         const [order] = await this.orders.create(
           [
             {
@@ -225,14 +245,8 @@ export class OrdersService {
               // stamped when it is raised, the round happens when it happens.
               ...(dto.deliveryDate ? { deliveryDate: dto.deliveryDate } : {}),
               customerId: customer.id,
-              customer: {
-                name: customer.name,
-                phone: customer.phone,
-                address: customer.address,
-                area: customer.area,
-                postcode: customer.postcode,
-                round: customer.round,
-              },
+              customer: snapshotOf(customer),
+              ...(book ? { roundBook: book.code } : {}),
               courier: courier?.name ?? 'Unassigned',
               courierId: courier?.id ?? '',
               items,
@@ -255,6 +269,192 @@ export class OrdersService {
     } finally {
       await session.endSession();
     }
+  }
+
+  /**
+   * Raise next week's bills from a closed round book — mymilkman's standing
+   * order: the same customers get the same goods again, and whatever they
+   * still owe is printed on the new bill as its previous balance.
+   *
+   * Called by the close, inside its transaction, so either every customer is
+   * billed for next week or the book stays open.
+   *
+   * - **Every bill is copied**, not one per customer: a customer on a
+   *   Mon/Thurs round has a Monday bill and a Thursday bill, and next week
+   *   needs both. The goods, the prices actually charged and the delivery
+   *   charge are kept; the delivery date moves on a week.
+   * - **The customer is re-read**, not copied from the old bill, so a changed
+   *   address or phone is on next week's docket. A customer who has since
+   *   been deleted or moved to another round is skipped and reported — their
+   *   old round is not theirs to be billed on any more.
+   * - **Previous balance runs per customer.** It is the ledger balance when
+   *   the close runs, plus each bill already raised for them in this loop —
+   *   exactly what raising the same bills one by one at the till would print.
+   *
+   * Four reads, whatever the size of the round, then two writes per bill.
+   */
+  async rollForward(
+    from: Pick<RoundBook, 'code' | 'roundId'>,
+    to: Pick<RoundBook, 'code' | 'weekStart'>,
+    excludeCustomerIds: readonly string[],
+    session: ClientSession,
+  ): Promise<RolledForwardDto> {
+    const thisWeek = await this.orders
+      .find({ roundBook: from.code })
+      .sort({ createdAt: 1 })
+      .session(session)
+      .lean<OrderLike[]>();
+
+    /**
+     * Customers on the round with no bill this week — usually someone who was
+     * paused and has since been resumed. Their last week's bills are the
+     * template: resuming means "start delivering what they had again", and
+     * without this they could never come back, having nothing to copy.
+     */
+    const billedThisWeek = new Set(thisWeek.map((bill) => bill.customerId));
+    const returning = (await this.customers.findByRound(from.roundId))
+      .filter((c) => !c.paused && !billedThisWeek.has(c.id))
+      .map((c) => c.id);
+
+    const source = [...thisWeek, ...(await this.lastWeekBillsOf(returning, from, session))];
+
+    const created: RolledForwardBillDto[] = [];
+    const skipped: RolledForwardSkipDto[] = [];
+    if (source.length === 0) return { created, skipped };
+
+    const customerIds = [...new Set(source.map((bill) => bill.customerId))];
+    const excluded = new Set(excludeCustomerIds);
+
+    const [customers, history, paidByCustomer] = await Promise.all([
+      this.customers.findManyByCode(customerIds),
+      this.orders
+        .find({ customerId: { $in: customerIds } })
+        .select('customerId totalMinor')
+        .session(session)
+        .lean<{ customerId: string; totalMinor: number }[]>(),
+      this.payments.paidTotalsByCustomer(customerIds),
+    ]);
+
+    /** Billed minus paid, per customer — moved on as each new bill is raised. */
+    const balance = new Map<string, number>();
+    for (const customerId of customerIds) {
+      balance.set(customerId, -(paidByCustomer.get(customerId) ?? 0));
+    }
+    for (const bill of history) {
+      balance.set(bill.customerId, (balance.get(bill.customerId) ?? 0) + bill.totalMinor);
+    }
+
+    const skip = (customerId: string, name: string, reason: string) => {
+      if (!skipped.some((line) => line.customerId === customerId)) {
+        skipped.push({ customerId, name, reason });
+      }
+    };
+
+    for (const bill of source) {
+      const customer = customers.get(bill.customerId);
+
+      if (excluded.has(bill.customerId)) {
+        skip(bill.customerId, customer?.name ?? bill.customer.name, 'Left out when the book was closed.');
+        continue;
+      }
+      if (!customer) {
+        skip(bill.customerId, bill.customer.name, 'Customer no longer exists.');
+        continue;
+      }
+      if (customer.paused) {
+        skip(customer.id, customer.name, 'Paused.');
+        continue;
+      }
+      if (customer.round !== from.roundId) {
+        const now = DELIVERY_ROUNDS.find((round) => round.id === customer.round);
+        skip(customer.id, customer.name, `Now on ${now ? now.label : 'no round'}.`);
+        continue;
+      }
+
+      const owed = balance.get(customer.id) ?? 0;
+      /** A credit balance is not a debt to print on the next docket. */
+      const previousBalanceMinor = Math.max(0, owed);
+      const code = await this.sequence.next('TRX');
+      const deliveryDate = bill.deliveryDate
+        ? nextDeliveryDate(bill.deliveryDate, to.weekStart)
+        : undefined;
+
+      await this.orders.create(
+        [
+          {
+            code,
+            date: formatTimestamp(new Date()),
+            ...(deliveryDate ? { deliveryDate } : {}),
+            customerId: customer.id,
+            customer: snapshotOf(customer),
+            roundBook: to.code,
+            courier: bill.courier,
+            courierId: bill.courierId,
+            items: bill.items.map((line) => ({
+              productId: line.productId,
+              name: line.name,
+              qty: line.qty,
+              priceMinor: line.priceMinor,
+              ...(line.day ? { day: line.day } : {}),
+            })),
+            deliveryChargeMinor: bill.deliveryChargeMinor ?? 0,
+            totalMinor: bill.totalMinor,
+            previousBalanceMinor,
+            grandTotalMinor: bill.totalMinor + previousBalanceMinor,
+          },
+        ],
+        { session },
+      );
+
+      /** The same stock rule as a bill raised at the till. */
+      await this.products.decrementStock(bill.items, session);
+
+      balance.set(customer.id, owed + bill.totalMinor);
+
+      created.push({
+        id: code,
+        from: bill.code,
+        customerId: customer.id,
+        customerName: customer.name,
+        total: bill.totalMinor / 100,
+        previousBalance: previousBalanceMinor / 100,
+        grandTotal: (bill.totalMinor + previousBalanceMinor) / 100,
+      });
+    }
+
+    return { created, skipped };
+  }
+
+  /**
+   * Each customer's bills from the most recent earlier book on this round that
+   * had any, oldest first. One read for all of them.
+   */
+  private async lastWeekBillsOf(
+    customerIds: string[],
+    from: Pick<RoundBook, 'code' | 'roundId'>,
+    session: ClientSession,
+  ): Promise<OrderLike[]> {
+    if (customerIds.length === 0) return [];
+
+    const history = await this.orders
+      .find({
+        customerId: { $in: customerIds },
+        'customer.round': from.roundId,
+        roundBook: { $exists: true, $ne: from.code },
+      })
+      .sort({ createdAt: -1 })
+      .session(session)
+      .lean<OrderLike[]>();
+
+    /** Newest first, so the first book seen per customer is their latest. */
+    const latestBook = new Map<string, string>();
+    for (const bill of history) {
+      if (!latestBook.has(bill.customerId)) latestBook.set(bill.customerId, bill.roundBook!);
+    }
+
+    return history
+      .filter((bill) => latestBook.get(bill.customerId) === bill.roundBook)
+      .reverse();
   }
 
   /**
@@ -407,4 +607,33 @@ export class OrdersService {
 
     return { billedMinor: row?.billedMinor ?? 0, count: row?.count ?? 0 };
   }
+}
+
+/** The customer as copied onto a bill — never referenced, so a later edit leaves it intact. */
+function snapshotOf(customer: {
+  name: string;
+  phone: string;
+  address: string;
+  area: string;
+  postcode: string;
+  round: string;
+}) {
+  return {
+    name: customer.name,
+    phone: customer.phone,
+    address: customer.address,
+    area: customer.area,
+    postcode: customer.postcode,
+    round: customer.round,
+  };
+}
+
+/**
+ * The same weekday a week on — or further, if the book was left open long
+ * enough that a week on would still fall before the new book's week.
+ */
+function nextDeliveryDate(previous: string, weekStart: string): string {
+  let next = addDays(previous, 7);
+  while (next < weekStart) next = addDays(next, 7);
+  return next;
 }

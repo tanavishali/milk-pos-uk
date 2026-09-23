@@ -73,3 +73,16 @@ export enum PaymentStatus {
   Partial = 'Part Paid',
   Paid = 'Paid',
 }
+
+/**
+ * Where a round's week-long book stands.
+ *
+ * Only two states, on purpose. A book is either still taking orders or it has
+ * been closed and its statements frozen — there is no "re-opened", because the
+ * statements it produced have already been read by the customer, and a book
+ * that could change after that would make them wrong.
+ */
+export enum RoundBookStatus {
+  Open = 'open',
+  Closed = 'closed',
+}

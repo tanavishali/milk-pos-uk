@@ -51,6 +51,27 @@ export class CustomersService {
     );
   }
 
+  /**
+   * Several customers by code, in one query, keyed by code. A code with no
+   * customer is simply absent from the map — the caller decides whether that
+   * is an error, which for a round being rolled forward it is not.
+   */
+  async findManyByCode(codes: string[]): Promise<Map<string, CustomerDto>> {
+    if (codes.length === 0) return new Map();
+
+    const rows = await this.customers
+      .find({ code: { $in: codes } })
+      .lean<Customer[]>();
+
+    return new Map(rows.map((row) => [row.code, CustomerDto.from(row)]));
+  }
+
+  /** Everyone on a round, paused or not. */
+  async findByRound(roundId: string): Promise<CustomerDto[]> {
+    const rows = await this.customers.find({ round: roundId }).lean<Customer[]>();
+    return rows.map((row) => CustomerDto.from(row));
+  }
+
   async findOne(code: string): Promise<CustomerDto> {
     const customer = await this.customers.findOne({ code }).lean<Customer>();
 
@@ -114,6 +135,18 @@ export class CustomersService {
     }
 
     return { id: code };
+  }
+
+  /**
+   * Pause or resume a customer. Its own write rather than a field on the edit
+   * form, because it is a one-tap action from the round's list — the same
+   * button mymilkman puts on every row.
+   */
+  async setPaused(code: string, paused: boolean): Promise<CustomerDto> {
+    const customer = await this.require(code);
+    customer.paused = paused;
+    await customer.save();
+    return CustomerDto.from(customer);
   }
 
   private async require(code: string): Promise<CustomerDocument> {

@@ -60,6 +60,12 @@ export interface Order {
   deliveryDate?: string;
   customer: OrderCustomer;
   /**
+   * The round book this bill was raised into, `RB-101`. Stamped by the server
+   * from the round's open book when the bill is raised. Absent for a walk-in,
+   * who is on no round and so in no book.
+   */
+  roundBook?: string;
+  /**
    * Who delivers it. `courier` is the name printed on the receipt; `courierId`
    * is what a driver's own order list is scoped by — two couriers can share a
    * name, and scoping by name would show one driver another's deliveries.

@@ -41,6 +41,18 @@ export const customersApi = baseApi.injectEndpoints({
       invalidatesTags: [tags.Customer],
     }),
 
+    /** Pause or resume: a paused customer gets no bill when the round closes. */
+    setCustomerPaused: build.mutation<Customer, { id: string; paused: boolean }>({
+      queryFn: ({ id, paused }) =>
+        queryFor(() =>
+          request<Customer>(`/customers/${id}/pause`, {
+            method: "PATCH",
+            body: JSON.stringify({ paused }),
+          }),
+        ),
+      invalidatesTags: [tags.Customer],
+    }),
+
     deleteCustomer: build.mutation<string, string>({
       queryFn: (id) =>
         queryFor(async () => {
@@ -59,5 +71,6 @@ export const {
   useGetCustomersQuery,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
+  useSetCustomerPausedMutation,
   useDeleteCustomerMutation,
 } = customersApi;
