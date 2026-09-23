@@ -4,8 +4,8 @@ import {
   LuBanknote,
   LuCirclePlus,
   LuClock,
+  LuEye,
   LuHandCoins,
-  LuPrinter,
   LuReceiptText,
   LuSearchX,
   LuShoppingBag,
@@ -46,6 +46,7 @@ import { matchesQuery } from "@utils/helper/search";
 import { RecordPaymentModal } from "@features/payments/index";
 import { useGetOrdersQuery } from "../api/ordersApi";
 import { InvoiceModal } from "./InvoiceModal";
+import { OrderDetailModal } from "./OrderDetailModal";
 import { OrderWizard } from "./OrderWizard";
 
 const totalUnits = (order: Order) =>
@@ -79,6 +80,7 @@ export function OrdersView() {
   // the other one shows, and a captured object would keep printing the old ones.
   const [receiptId, setReceiptId] = useState<string | undefined>();
   const [collectingId, setCollectingId] = useState<string | undefined>();
+  const [viewingId, setViewingId] = useState<string | undefined>();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | PaymentStatus>("");
   const [round, setRound] = useState("");
@@ -127,6 +129,7 @@ export function OrdersView() {
 
   const receipt = orders.find((order) => order.id === receiptId);
   const collecting = orders.find((order) => order.id === collectingId);
+  const viewing = orders.find((order) => order.id === viewingId);
 
   // Registry-wide, not filter-scoped: these answer "what is outstanding across
   // the till", which a search for one customer should not change.
@@ -253,7 +256,7 @@ export function OrdersView() {
         <RegistrySkeleton
           viewMode={mode}
           label="Loading transactions"
-          columns={7}
+          columns={5}
         />
       ) : orders.length === 0 ? (
         <EmptyState message="No transactions recorded" icon={LuReceiptText} />
@@ -314,10 +317,10 @@ export function OrdersView() {
               <CardActions
                 actions={[
                   {
-                    label: "Receipt",
-                    icon: LuPrinter,
+                    label: "View",
+                    icon: LuEye,
                     tone: "accent",
-                    onClick: () => setReceiptId(order.id),
+                    onClick: () => setViewingId(order.id),
                   },
                   {
                     label: "Collect",
@@ -332,14 +335,11 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="800px"
+          minWidth="620px"
           headers={[
             { label: "Txn ID" },
             { label: "Customer" },
             { label: "Round" },
-            { label: "Courier" },
-            { label: "Qty" },
-            { label: "Status" },
             { label: "Due at door" },
             { label: "Actions", align: "right" },
           ]}
@@ -366,22 +366,6 @@ export function OrdersView() {
                   {roundLabel(order.customer.round)}
                 </Badge>
               </TableCell>
-              <TableCell className="text-foreground-body whitespace-nowrap">
-                {order.courier}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {totalUnits(order)} pcs
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                <Badge pill tone={statusTone(order.status)}>
-                  {order.status}
-                </Badge>
-                {order.receivedAtDelivery > 0 ? (
-                  <div className="text-nano text-success-text mt-0.5 font-semibold">
-                    {formatCurrency(order.receivedAtDelivery)} taken here
-                  </div>
-                ) : null}
-              </TableCell>
               <TableCell className="text-foreground-strong font-extrabold whitespace-nowrap">
                 {formatCurrency(order.grandTotal)}
                 {order.previousBalance > 0 ? (
@@ -392,13 +376,16 @@ export function OrdersView() {
               </TableCell>
               <TableCell align="right" className="whitespace-nowrap">
                 <div className="flex justify-end gap-1.5">
+                  {/* The receipt lives inside this dialog now — one door into
+                      the transaction, rather than two buttons on the row that
+                      each show a different half of it. */}
                   <button
                     type="button"
-                    onClick={() => setReceiptId(order.id)}
+                    onClick={() => setViewingId(order.id)}
                     className="text-accent-text border-border hover:bg-accent-soft rounded-control-sm text-label inline-flex items-center gap-1 border px-2.5 py-1 font-bold transition-colors"
                   >
-                    <LuPrinter className="h-3.5 w-3.5" aria-hidden />
-                    Receipt
+                    <LuEye className="h-3.5 w-3.5" aria-hidden />
+                    View
                   </button>
                   <button
                     type="button"
@@ -430,6 +417,17 @@ export function OrdersView() {
 
       {wizardOpen ? (
         <OrderWizard onClose={closeWizard} onIssued={setReceiptId} />
+      ) : null}
+
+      {viewing ? (
+        <OrderDetailModal
+          order={viewing}
+          onReceipt={() => {
+            setReceiptId(viewing.id);
+            setViewingId(undefined);
+          }}
+          onClose={() => setViewingId(undefined)}
+        />
       ) : null}
 
       {receipt ? (

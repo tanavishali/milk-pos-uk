@@ -57,6 +57,11 @@ interface DetailModalProps {
   onClose: () => void;
   /** Omit to make the dialog purely read-only. */
   onEdit?: () => void;
+  /**
+   * One extra primary action in the footer, beside Close — the order detail's
+   * Receipt. Sits before Edit so the destructive-adjacent action stays last.
+   */
+  action?: { label: string; icon?: IconType; onClick: () => void };
 }
 
 /**
@@ -81,6 +86,7 @@ export function DetailModal({
   fields,
   onClose,
   onEdit,
+  action,
 }: DetailModalProps) {
   return (
     <Modal
@@ -91,6 +97,11 @@ export function DetailModal({
           <Button variant="ghost" onClick={onClose}>
             Close
           </Button>
+          {action ? (
+            <Button icon={action.icon} onClick={action.onClick}>
+              {action.label}
+            </Button>
+          ) : null}
           {onEdit ? (
             <Button icon={LuPencil} onClick={onEdit}>
               Edit
