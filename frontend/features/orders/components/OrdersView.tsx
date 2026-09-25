@@ -44,7 +44,7 @@ import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { clearNewOrderRequest, setViewMode } from "@store/slices/uiSlice";
 import { DELIVERY_ROUNDS, roundLabel } from "@constants/index";
-import { formatCurrency } from "@utils/helper/format";
+import { formatCurrency, formatDeliveryDate } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
 import { RecordPaymentModal } from "@features/payments/index";
 import {
@@ -137,7 +137,9 @@ export function OrdersView() {
   const notBilled = useMemo(() => {
     if (!onThisWeek || !currentBook) return [];
     const billed = new Set(
-      orders.filter((o) => o.roundBook === currentBook.id).map((o) => o.customerId),
+      orders
+        .filter((o) => o.roundBook === currentBook.id)
+        .map((o) => o.customerId),
     );
     return customers
       .filter((c) => c.round === round && !billed.has(c.id))
@@ -389,6 +391,14 @@ export function OrdersView() {
                 <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
                   Courier: {order.courier}
                 </p>
+                {/* The same delivery day the table column states, so the two
+                    views of the registry answer "when does this go out" the
+                    same way. */}
+                <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
+                  {order.deliveryDate
+                    ? formatDeliveryDate(order.deliveryDate)
+                    : order.date}
+                </p>
                 <p className="mt-1.5">
                   <Badge tone={order.customer.round ? "accent" : "neutral"}>
                     {roundLabel(order.customer.round)}
@@ -418,8 +428,12 @@ export function OrdersView() {
                   ...(onThisWeek
                     ? [
                         {
-                          label: pausedIds.has(order.customerId) ? "Resume" : "Pause",
-                          icon: pausedIds.has(order.customerId) ? LuPlay : LuPause,
+                          label: pausedIds.has(order.customerId)
+                            ? "Resume"
+                            : "Pause",
+                          icon: pausedIds.has(order.customerId)
+                            ? LuPlay
+                            : LuPause,
                           tone: "danger" as const,
                           onClick: () => togglePause(order.customerId),
                         },
@@ -444,9 +458,9 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="620px"
+          minWidth="680px"
           headers={[
-            { label: "Txn ID" },
+            { label: "Date" },
             { label: "Customer" },
             { label: "Round" },
             { label: "Due at door" },
@@ -455,8 +469,23 @@ export function OrdersView() {
         >
           {pageItems.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className="text-foreground font-mono font-bold whitespace-nowrap">
-                {order.id}
+              {/* The delivery day, not the minute the bill was raised — the
+                  registry is read as "what goes out when", and an order taken
+                  Friday for Monday's round would answer the wrong question.
+                  Falls back to the raised timestamp for bills issued before a
+                  delivery date could be chosen. The Txn ID has not gone
+                  anywhere: it heads the View dialog and the receipt. */}
+              <TableCell className="text-foreground font-bold whitespace-nowrap">
+                {order.deliveryDate ? (
+                  <>
+                    {formatDeliveryDate(order.deliveryDate)}
+                    <span className="text-nano text-foreground-subtle block font-semibold">
+                      Raised {order.date}
+                    </span>
+                  </>
+                ) : (
+                  order.date
+                )}
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <div className="text-foreground flex items-center gap-1.5 font-bold">
@@ -549,8 +578,12 @@ export function OrdersView() {
                 className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-xs sm:px-5"
               >
                 <div className="min-w-0">
-                  <span className="text-foreground-strong font-bold">{c.name}</span>{" "}
-                  <span className="text-foreground-subtle font-mono">[{c.id}]</span>
+                  <span className="text-foreground-strong font-bold">
+                    {c.name}
+                  </span>{" "}
+                  <span className="text-foreground-subtle font-mono">
+                    [{c.id}]
+                  </span>
                   <span className="text-foreground-muted block">
                     {c.paused
                       ? "Paused: no bill next week"
@@ -576,7 +609,10 @@ export function OrdersView() {
           top: it is the last thing done after working down the round. */}
       {onThisWeek && currentBook && !isLoading && !isError ? (
         <div className="flex justify-end">
-          <Button icon={LuBookCheck} onClick={() => setClosingBook(currentBook)}>
+          <Button
+            icon={LuBookCheck}
+            onClick={() => setClosingBook(currentBook)}
+          >
             Close Round Book
           </Button>
         </div>
