@@ -46,8 +46,14 @@ export const ordersApi = baseApi.injectEndpoints({
           }),
         ),
       // Issuing an order draws down stock in the same transaction, so the
-      // product cache is stale the moment this lands.
-      invalidatesTags: [tags.Order, tags.Product, tags.DashboardMetrics],
+      // product cache is stale the moment this lands. It also lands in the
+      // round's open book, whose live figures change with it.
+      invalidatesTags: [
+        tags.Order,
+        tags.Product,
+        tags.DashboardMetrics,
+        tags.RoundBook,
+      ],
     }),
   }),
 });

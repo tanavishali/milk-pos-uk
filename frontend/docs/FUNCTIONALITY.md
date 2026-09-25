@@ -662,6 +662,61 @@ Grid/list toggle, pagination, per-row actions: **Receipt** and **Collect**.
 Delivery days shown as `DayChips`, derived from the order's own lines rather
 than the customer's current round.
 
+#### Round books — closing a round's week
+
+Modelled on mymilkman's *Close Round Book*. Each named round has **one open
+book** at a time, covering a Monday-to-Sunday week. Picking a round in the
+round filter shows that round's book bar above the table: its code (`RB-101`),
+week, live figures (orders, billed, paid, unpaid this week, what would carry
+forward), a book picker (this week / an earlier closed week / all books), a
+**Statements** button and **Close Round Book**. The bar never appears for
+"No round" or for all rounds at once: closing is per round.
+
+- **Assignment.** A bill raised for a customer on a round is stamped
+  `roundBook` from that round's open book, inside the order's transaction.
+  It is never inferred later from `date` or `deliveryDate`. Walk-ins get no
+  book. Bills that predate books are filed into the round's oldest book when
+  the API boots.
+- **Closing** (`POST /round-books/:code/close`, admin, idempotent) does four
+  things in one transaction: freezes the book's summary and one statement
+  per customer, marks it closed, opens next week's book for the same round,
+  and **raises next week's bills**. Next week is the following Monday, or the
+  current week if the book was left open for longer.
+- **Next week's bills** (`OrdersService.rollForward`): every bill in the
+  closed book is copied into the new one, so a customer on a two-day round
+  gets both bills again. Goods, the prices actually charged, the delivery
+  charge and the courier are kept, and the delivery date moves on a week.
+  The customer's address is re-read, and each new bill prints what they
+  still owe as `previousBalance`. For a second bill in the same week that
+  includes the first new bill, exactly as raising them one by one would.
+  Stock is drawn down as for any bill.
+- **Who is left out: the Pause button.** As on mymilkman, every row on a
+  round's list has a Pause button (`PATCH /customers/:id/pause`). A paused
+  customer is shown with a red *Paused* tag and gets no bill when the book
+  closes; resuming them brings them back the following week. Customers since
+  deleted or moved to another round are skipped automatically. The API still
+  accepts `excludeCustomerIds` for a one-off exclusion, but the UI does not
+  use it.
+- **The dialog** follows mymilkman's wording: *Are you sure you wish to close
+  your Round Book?*, a three-point checklist, one line saying how many
+  customers will be billed (and how many are paused), the server's warnings
+  if there are any, and *Yes, Close Round Book* / *Cancel*. Close Round Book
+  appears at the top and the foot of the list, and the heading reads
+  `[Roundbook RB-103] Week start: Mon 21 Sep 2026`.
+- **No existing bill or payment changes.** Balances are derived on read, so
+  the unpaid money is still on the customer's account; the new bill only
+  prints it. The frozen statements are a record of the week that later
+  payments cannot rewrite.
+- **The dialog's checklist is computed**, not printed: unpaid money, orders
+  with no courier, deliveries scheduled after the week ends. None of them
+  blocks the close. The operator must tick that the round's cash has been
+  recorded, which is the one thing the server cannot see.
+- **Guards.** A partial unique index allows only one open book per round. Two
+  simultaneous closes produce one close and one `409`. A bill raised during a
+  close writes the book's `revision`, so the two transactions conflict and the
+  retried bill lands in next week's book instead of being left off frozen
+  statements. A closed book can never be re-opened.
+
 ### `/customers`
 
 Full CRUD. The modal collects name, phone, email, round, day toggles, area,

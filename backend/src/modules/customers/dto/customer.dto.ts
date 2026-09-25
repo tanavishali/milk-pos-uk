@@ -31,6 +31,12 @@ export class CustomerDto {
   @ApiProperty({ example: '54000' })
   postcode!: string;
 
+  @ApiProperty({
+    example: false,
+    description: 'Paused customers get no bill for next week when a round book closes.',
+  })
+  paused!: boolean;
+
 /**
    * The stored shape rather than the hydrated document: every read path is
    * `.lean()`, and this mapper only ever reads fields. A `CustomerDocument` still
@@ -47,6 +53,8 @@ export class CustomerDto {
       area: doc.area,
       address: doc.address,
       postcode: doc.postcode,
+      /** Customers created before the field existed read as not paused. */
+      paused: doc.paused ?? false,
     };
   }
 }

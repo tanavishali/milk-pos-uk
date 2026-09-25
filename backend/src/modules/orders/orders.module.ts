@@ -6,9 +6,11 @@ import { CouriersModule } from '../couriers/couriers.module';
 import { CustomersModule } from '../customers/customers.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { ProductsModule } from '../products/products.module';
+import { RoundBooksModule } from '../round-books/round-books.module';
 import { LedgerService } from './ledger.service';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { RoundBookCloseController } from './round-book-close.controller';
 import { Order, OrderSchema } from './schemas/order.schema';
 
 @Module({
@@ -21,10 +23,12 @@ import { Order, OrderSchema } from './schemas/order.schema';
     CouriersModule,
     /** Issuing a bill draws stock down in the same transaction. */
     ProductsModule,
+    /** A bill raised for a customer on a round is stamped with its open book. */
+    RoundBooksModule,
     /** For the guard on `/orders/mine`, which scopes a driver from their token. */
     AuthModule,
   ],
-  controllers: [OrdersController],
+  controllers: [OrdersController, RoundBookCloseController],
   providers: [OrdersService, LedgerService],
   exports: [OrdersService, LedgerService],
 })

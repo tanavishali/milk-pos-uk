@@ -79,3 +79,14 @@ export enum WizardStep {
   /** Review what will be due at the door: this delivery plus any old balance. */
   Balance = 4,
 }
+
+/**
+ * Where a round's week-long book stands. Mirrors the backend's enum.
+ *
+ * There is no "re-opened": a closed book's statements have already gone to the
+ * customers, and a book that could change afterwards would make them wrong.
+ */
+export enum RoundBookStatus {
+  Open = "open",
+  Closed = "closed",
+}

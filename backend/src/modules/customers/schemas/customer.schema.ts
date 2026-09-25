@@ -49,6 +49,15 @@ export class Customer {
 
   @Prop({ required: true, trim: true })
   postcode!: string;
+
+  /**
+   * Paused customers are skipped when a round book closes: no bill is raised
+   * for them for the coming week. mymilkman's pause button — for a holiday, or
+   * someone who has stopped for now but may start again. Their past bills and
+   * balance are untouched.
+   */
+  @Prop({ default: false })
+  paused?: boolean;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

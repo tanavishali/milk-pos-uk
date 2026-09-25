@@ -28,7 +28,12 @@ export interface Customer {
   address: string;
   /** Postal code for the delivery address. */
   postcode: string;
+  /**
+   * Paused customers get no bill for next week when their round book closes —
+   * mymilkman's pause button. Toggled from the round's list, not the form.
+   */
+  paused: boolean;
 }
 
 /** The writable half of a Customer — what a form collects. */
-export type CustomerDraft = Omit<Customer, "id">;
+export type CustomerDraft = Omit<Customer, "id" | "paused">;

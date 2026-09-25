@@ -23,6 +23,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ProductsModule } from './modules/products/products.module';
+import { RoundBooksModule } from './modules/round-books/round-books.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { ProductsModule } from './modules/products/products.module';
     DeliveryModule,
     OrdersModule,
     PaymentsModule,
+    RoundBooksModule,
     DashboardModule,
   ],
 

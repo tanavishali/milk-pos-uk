@@ -52,6 +52,12 @@ export class OrderDto {
   @ApiProperty({ type: OrderCustomerDto })
   customer!: OrderCustomerDto;
 
+  @ApiPropertyOptional({
+    example: 'RB-101',
+    description: 'The round book this bill was raised into. Absent for a walk-in.',
+  })
+  roundBook?: string;
+
   @ApiProperty({ example: 'Bilal Khan', description: 'The name printed on the receipt.' })
   courier!: string;
 
@@ -135,6 +141,7 @@ export class OrderDto {
         postcode: doc.customer.postcode,
         round: doc.customer.round,
       },
+      ...(doc.roundBook ? { roundBook: doc.roundBook } : {}),
       courier: doc.courier,
       courierId: doc.courierId,
       items: doc.items.map((line) => ({

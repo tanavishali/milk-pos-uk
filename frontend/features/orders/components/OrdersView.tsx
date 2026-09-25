@@ -5,13 +5,16 @@ import {
   LuCirclePlus,
   LuClock,
   LuEye,
+  LuBookCheck,
   LuHandCoins,
+  LuPause,
+  LuPlay,
   LuReceiptText,
   LuSearchX,
   LuShoppingBag,
 } from "react-icons/lu";
 import { useMemo, useState } from "react";
-import type { Order } from "@app-types/index";
+import type { Order, RoundBook } from "@app-types/index";
 import { Button } from "@components/ui/buttons";
 import {
   Card,
@@ -41,9 +44,22 @@ import { usePagination } from "@hooks/usePagination";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { clearNewOrderRequest, setViewMode } from "@store/slices/uiSlice";
 import { DELIVERY_ROUNDS, roundLabel } from "@constants/index";
-import { formatCurrency } from "@utils/helper/format";
+import { formatCurrency, formatDeliveryDate } from "@utils/helper/format";
 import { matchesQuery } from "@utils/helper/search";
 import { RecordPaymentModal } from "@features/payments/index";
+import {
+  useGetCustomersQuery,
+  useSetCustomerPausedMutation,
+} from "@features/customers/index";
+import {
+  ALL_BOOKS,
+  CURRENT_BOOK,
+  CloseRoundBookDialog,
+  RoundBookBar,
+  RoundBookStatementsModal,
+  useGetCurrentRoundBookQuery,
+  type BookSelection,
+} from "@features/round-books/index";
 import { useGetOrdersQuery } from "../api/ordersApi";
 import { InvoiceModal } from "./InvoiceModal";
 import { OrderDetailModal } from "./OrderDetailModal";
@@ -84,6 +100,67 @@ export function OrdersView() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | PaymentStatus>("");
   const [round, setRound] = useState("");
+  const [bookSelection, setBookSelection] =
+    useState<BookSelection>(CURRENT_BOOK);
+  const [closingBook, setClosingBook] = useState<RoundBook | undefined>();
+  const [statementsBookId, setStatementsBookId] = useState<
+    string | undefined
+  >();
+
+  // A book belongs to one named round, so the book controls only exist once a
+  // round is picked — "No round" and "all rounds" have no week to close.
+  const namedRound = round !== "" && round !== "none";
+  const { data: currentBook } = useGetCurrentRoundBookQuery(round, {
+    skip: !namedRound,
+  });
+  // Pause lives on the customer, not the order, so it is read from the
+  // directory. Only needed once a round is picked — that is where the pause
+  // buttons appear.
+  const { data: customers = [] } = useGetCustomersQuery(undefined, {
+    skip: !namedRound,
+  });
+  const pausedIds = useMemo(
+    () => new Set(customers.filter((c) => c.paused).map((c) => c.id)),
+    [customers],
+  );
+  const [setPaused, { isLoading: pausing, originalArgs: pausingArgs }] =
+    useSetCustomerPausedMutation();
+  const togglePause = (customerId: string) =>
+    void setPaused({ id: customerId, paused: !pausedIds.has(customerId) });
+  // The pause and close controls belong to this week only: a closed week is
+  // history, and pausing from it would read as changing the past.
+  const onThisWeek = namedRound && bookSelection === CURRENT_BOOK;
+
+  // Customers on this round with no bill in this week's book — paused ones,
+  // and ones resumed after a pause. mymilkman keeps them on the round's list;
+  // without this a paused customer would vanish and could never be resumed.
+  const notBilled = useMemo(() => {
+    if (!onThisWeek || !currentBook) return [];
+    const billed = new Set(
+      orders
+        .filter((o) => o.roundBook === currentBook.id)
+        .map((o) => o.customerId),
+    );
+    return customers
+      .filter((c) => c.round === round && !billed.has(c.id))
+      .map((c) => ({
+        ...c,
+        // A bill on this round in an earlier week is what the close copies.
+        hasPastBill: orders.some(
+          (o) => o.customerId === c.id && o.customer.round === round,
+        ),
+      }));
+  }, [onThisWeek, currentBook, orders, customers, round]);
+  const returning = notBilled.filter((c) => !c.paused && c.hasPastBill).length;
+  // The book the table is narrowed to, if any. Until the open book has loaded
+  // the round's orders are shown unnarrowed rather than as an empty table.
+  const bookFilter = !namedRound
+    ? undefined
+    : bookSelection === ALL_BOOKS
+      ? undefined
+      : bookSelection === CURRENT_BOOK
+        ? currentBook?.id
+        : bookSelection;
 
   // Address is searchable too: "which orders go to Gulberg?" is a dispatch
   // question a cashier actually asks, and the address is on the order already.
@@ -107,9 +184,10 @@ export function OrdersView() {
           (round === "" ||
             (round === "none"
               ? order.customer.round === ""
-              : order.customer.round === round)),
+              : order.customer.round === round)) &&
+          (!bookFilter || order.roundBook === bookFilter),
       ),
-    [orders, search, status, round],
+    [orders, search, status, round, bookFilter],
   );
 
   // The mobile tab bar's centre button navigates here and raises this flag.
@@ -237,7 +315,11 @@ export function OrdersView() {
         <Select
           aria-label="Filter by delivery round"
           value={round}
-          onChange={(event) => setRound(event.target.value)}
+          onChange={(event) => {
+            setRound(event.target.value);
+            // A book code means nothing on another round.
+            setBookSelection(CURRENT_BOOK);
+          }}
           placeholder="Select Round"
           options={[
             ...DELIVERY_ROUNDS.map((r) => ({ value: r.id, label: r.label })),
@@ -246,6 +328,16 @@ export function OrdersView() {
           className="w-full sm:w-auto"
         />
       </Toolbar>
+
+      {namedRound ? (
+        <RoundBookBar
+          roundId={round}
+          selection={bookSelection}
+          onSelect={setBookSelection}
+          onClose={setClosingBook}
+          onStatements={setStatementsBookId}
+        />
+      ) : null}
 
       {isError ? (
         <ErrorState
@@ -262,10 +354,16 @@ export function OrdersView() {
         <EmptyState message="No transactions recorded" icon={LuReceiptText} />
       ) : filtered.length === 0 ? (
         // Distinct from "none recorded" — the registry has rows, this filter
-        // just doesn't match any, and the fix is to change the filter.
+        // just doesn't match any, and the fix is to change the filter. A book
+        // with nothing in it is its own case: a week that has only just been
+        // opened is empty, not mis-filtered.
         <EmptyState
-          message="No transactions match this search"
-          icon={LuSearchX}
+          message={
+            bookFilter && !search && !status
+              ? "No orders in this round book yet"
+              : "No transactions match this search"
+          }
+          icon={bookFilter && !search && !status ? LuReceiptText : LuSearchX}
         />
       ) : mode === ViewMode.Grid ? (
         <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -281,14 +379,25 @@ export function OrdersView() {
                   </Badge>
                 </div>
 
-                <p className="text-foreground-strong truncate text-[15px] font-bold">
+                <p className="text-foreground-strong flex items-center gap-1.5 truncate text-[15px] font-bold">
                   {order.customer.name}
+                  {namedRound && pausedIds.has(order.customerId) ? (
+                    <Badge tone="danger">Paused</Badge>
+                  ) : null}
                 </p>
                 <p className="text-foreground-muted mt-0.5 truncate text-[12.5px]">
                   {order.customer.phone}
                 </p>
                 <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
                   Courier: {order.courier}
+                </p>
+                {/* The same delivery day the table column states, so the two
+                    views of the registry answer "when does this go out" the
+                    same way. */}
+                <p className="text-foreground-subtle mt-0.5 truncate text-[12.5px]">
+                  {order.deliveryDate
+                    ? formatDeliveryDate(order.deliveryDate)
+                    : order.date}
                 </p>
                 <p className="mt-1.5">
                   <Badge tone={order.customer.round ? "accent" : "neutral"}>
@@ -316,6 +425,20 @@ export function OrdersView() {
 
               <CardActions
                 actions={[
+                  ...(onThisWeek
+                    ? [
+                        {
+                          label: pausedIds.has(order.customerId)
+                            ? "Resume"
+                            : "Pause",
+                          icon: pausedIds.has(order.customerId)
+                            ? LuPlay
+                            : LuPause,
+                          tone: "danger" as const,
+                          onClick: () => togglePause(order.customerId),
+                        },
+                      ]
+                    : []),
                   {
                     label: "View",
                     icon: LuEye,
@@ -335,9 +458,9 @@ export function OrdersView() {
         </div>
       ) : (
         <Table
-          minWidth="620px"
+          minWidth="680px"
           headers={[
-            { label: "Txn ID" },
+            { label: "Date" },
             { label: "Customer" },
             { label: "Round" },
             { label: "Due at door" },
@@ -346,12 +469,30 @@ export function OrdersView() {
         >
           {pageItems.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className="text-foreground font-mono font-bold whitespace-nowrap">
-                {order.id}
+              {/* The delivery day, not the minute the bill was raised — the
+                  registry is read as "what goes out when", and an order taken
+                  Friday for Monday's round would answer the wrong question.
+                  Falls back to the raised timestamp for bills issued before a
+                  delivery date could be chosen. The Txn ID has not gone
+                  anywhere: it heads the View dialog and the receipt. */}
+              <TableCell className="text-foreground font-bold whitespace-nowrap">
+                {order.deliveryDate ? (
+                  <>
+                    {formatDeliveryDate(order.deliveryDate)}
+                    <span className="text-nano text-foreground-subtle block font-semibold">
+                      Raised {order.date}
+                    </span>
+                  </>
+                ) : (
+                  order.date
+                )}
               </TableCell>
               <TableCell className="whitespace-nowrap">
-                <div className="text-foreground font-bold">
+                <div className="text-foreground flex items-center gap-1.5 font-bold">
                   {order.customer.name}
+                  {namedRound && pausedIds.has(order.customerId) ? (
+                    <Badge tone="danger">Paused</Badge>
+                  ) : null}
                 </div>
                 <div className="text-nano text-foreground-subtle">
                   {order.customer.phone}
@@ -376,6 +517,13 @@ export function OrdersView() {
               </TableCell>
               <TableCell align="right" className="whitespace-nowrap">
                 <div className="flex justify-end gap-1.5">
+                  {onThisWeek ? (
+                    <PauseButton
+                      paused={pausedIds.has(order.customerId)}
+                      busy={pausing && pausingArgs?.id === order.customerId}
+                      onClick={() => togglePause(order.customerId)}
+                    />
+                  ) : null}
                   {/* The receipt lives inside this dialog now — one door into
                       the transaction, rather than two buttons on the row that
                       each show a different half of it. */}
@@ -415,6 +563,61 @@ export function OrdersView() {
         />
       )}
 
+      {onThisWeek && notBilled.length > 0 && !isLoading && !isError ? (
+        <section
+          aria-label="Customers not billed this week"
+          className="bg-surface border-border rounded-card border shadow-card"
+        >
+          <h3 className="text-foreground-strong border-border-subtle border-b px-4 py-2.5 text-xs font-bold sm:px-5">
+            Not billed this week
+          </h3>
+          <ul className="divide-border-subtle divide-y">
+            {notBilled.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-xs sm:px-5"
+              >
+                <div className="min-w-0">
+                  <span className="text-foreground-strong font-bold">
+                    {c.name}
+                  </span>{" "}
+                  <span className="text-foreground-subtle font-mono">
+                    [{c.id}]
+                  </span>
+                  <span className="text-foreground-muted block">
+                    {c.paused
+                      ? "Paused: no bill next week"
+                      : c.hasPastBill
+                        ? "Back next week: their last bill will be repeated"
+                        : "No bill yet. Create an order to add them to the round."}
+                  </span>
+                </div>
+                {c.paused || c.hasPastBill ? (
+                  <PauseButton
+                    paused={c.paused}
+                    busy={pausing && pausingArgs?.id === c.id}
+                    onClick={() => togglePause(c.id)}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* mymilkman puts Close Round Book at the foot of the list as well as the
+          top: it is the last thing done after working down the round. */}
+      {onThisWeek && currentBook && !isLoading && !isError ? (
+        <div className="flex justify-end">
+          <Button
+            icon={LuBookCheck}
+            onClick={() => setClosingBook(currentBook)}
+          >
+            Close Round Book
+          </Button>
+        </div>
+      ) : null}
+
       {wizardOpen ? (
         <OrderWizard onClose={closeWizard} onIssued={setReceiptId} />
       ) : null}
@@ -441,6 +644,26 @@ export function OrdersView() {
         />
       ) : null}
 
+      {closingBook ? (
+        <CloseRoundBookDialog
+          book={closingBook}
+          pausedIds={pausedIds}
+          returning={returning}
+          onClose={() => {
+            setClosingBook(undefined);
+            // Back to this week's book, which is now the one just opened.
+            setBookSelection(CURRENT_BOOK);
+          }}
+        />
+      ) : null}
+
+      {statementsBookId ? (
+        <RoundBookStatementsModal
+          bookId={statementsBookId}
+          onClose={() => setStatementsBookId(undefined)}
+        />
+      ) : null}
+
       {collecting ? (
         <RecordPaymentModal
           order={collecting}
@@ -449,5 +672,42 @@ export function OrdersView() {
         />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * mymilkman's per-row pause: grey when the customer is active, red when
+ * paused. A paused customer gets no bill when the round book closes.
+ */
+function PauseButton({
+  paused,
+  busy,
+  onClick,
+}: {
+  paused: boolean;
+  busy: boolean;
+  onClick: () => void;
+}) {
+  const Icon = paused ? LuPlay : LuPause;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      aria-pressed={paused}
+      title={
+        paused
+          ? "Paused: no bill next week. Click to resume."
+          : "Pause: no bill next week"
+      }
+      className={
+        paused
+          ? "bg-danger text-foreground-on-accent hover:bg-danger-hover rounded-control-sm text-label inline-flex items-center gap-1 px-2.5 py-1 font-bold transition-colors disabled:opacity-60"
+          : "text-foreground-muted border-border hover:bg-surface-subtle rounded-control-sm text-label inline-flex items-center gap-1 border px-2.5 py-1 font-bold transition-colors disabled:opacity-60"
+      }
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {paused ? "Paused" : "Pause"}
+    </button>
   );
 }

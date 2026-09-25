@@ -4,5 +4,6 @@ export {
   useGetCustomersQuery,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
+  useSetCustomerPausedMutation,
   useDeleteCustomerMutation,
 } from "./api/customersApi";
